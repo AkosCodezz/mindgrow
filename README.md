@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Next.js 14 + Supabase Starter
 
 Futtatható starter template Next.js 14 (App Router), Supabase Auth, és Tailwind CSS alapokon.
@@ -79,3 +80,6 @@ const { data: { user } } = await supabase.auth.getUser();
 | `@supabase/ssr` | ^0.4 | Cookie-alapú session kezelés SSR-hez |
 | `@supabase/supabase-js` | ^2.44 | Supabase JS kliens |
 | `tailwindcss` | ^3.4 | Utility-first CSS |
+=======
+# mindgrow
+>>>>>>> 6a22294309555069ba457e77bb7d15adbcfc41f8
