@@ -2,21 +2,21 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CodeRift - Learn to Code Naturally with AI",
-  description: "Master programming through AI-guided challenges, personalized feedback, and an adaptive learning path. Your intelligent coding companion.",
-  keywords: ["coding", "programming", "learn to code", "AI tutor", "interactive learning", "code challenges", "CodeRift"],
-  authors: [{ name: "CodeRift Team" }],
+  title: "MindGrow - Learn to Code Naturally with AI",
+  description: "Master programming through AI-guided challenges, personalized feedback, and an adaptive learning path. Like Duolingo meets LeetCode with your personal AI coach.",
+  keywords: ["coding", "programming", "learn to code", "AI tutor", "interactive learning", "code challenges"],
+  authors: [{ name: "MindGrow Team" }],
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://coderift.dev",
-    title: "CodeRift - Learn to Code Naturally with AI",
+    url: "https://mindgrow.dev",
+    title: "MindGrow - Learn to Code Naturally with AI",
     description: "Master programming through AI-guided challenges and personalized feedback.",
-    siteName: "CodeRift",
+    siteName: "MindGrow",
   },
   twitter: {
     card: "summary_large_image",
-    title: "CodeRift - Learn to Code Naturally with AI",
+    title: "MindGrow - Learn to Code Naturally with AI",
     description: "Master programming through AI-guided challenges and personalized feedback.",
   },
 };
