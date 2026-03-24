@@ -94,3 +94,4 @@ create policy "Közvetlen INSERT tiltott – trigger hozza létre"
   on public.profiles
   for insert
   with check (false);
+

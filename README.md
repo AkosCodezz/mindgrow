@@ -81,5 +81,6 @@ const { data: { user } } = await supabase.auth.getUser();
 | `@supabase/supabase-js` | ^2.44 | Supabase JS kliens |
 | `tailwindcss` | ^3.4 | Utility-first CSS |
 =======
-# mindgrow
+# CodeRift
 >>>>>>> 6a22294309555069ba457e77bb7d15adbcfc41f8
+

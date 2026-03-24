@@ -1,5 +1,5 @@
 {
-  "name": "mindgrow-landing",
+  "name": "CodeRift-landing",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -27,3 +27,4 @@
     "eslint-config-next": "^16.0.0"
   }
 }
+
