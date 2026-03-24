@@ -5,12 +5,12 @@ import { useState, useRef, useEffect } from 'react';
 import { 
   Sparkles, Code2, Brain, Zap, Target, Users, CheckCircle2, ArrowRight, Star, Play, Lightbulb, Rocket, Terminal
 } from 'lucide-react';
-import Prism from 'prismjs';
-import 'prismjs/components/prism-javascript';
+import AuthModal from '@/components/AuthModal';
 
 export default function LandingPage() {
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   
   const { scrollYProgress } = useScroll({
@@ -106,7 +106,12 @@ export default function LandingPage() {
           </motion.p>
 
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.5 }} className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="group relative px-10 py-5 bg-gradient-to-r from-primary-600 via-secondary-600 to-accent-600 text-white rounded-2xl font-bold text-lg overflow-hidden shadow-xl">
+            <motion.button 
+              onClick={() => setShowAuth(true)}
+              whileHover={{ scale: 1.05 }} 
+              whileTap={{ scale: 0.95 }} 
+              className="group relative px-10 py-5 bg-gradient-to-r from-primary-600 via-secondary-600 to-accent-600 text-white rounded-2xl font-bold text-lg overflow-hidden shadow-xl"
+            >
               <span className="relative z-10 flex items-center gap-3">
                 <Rocket className="w-5 h-5" />Start Your Journey<ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
               </span>
@@ -121,9 +126,6 @@ export default function LandingPage() {
         <FloatingCodeSnippet delay={2} initialX={200} initialY={-50} />
       </motion.section>
 
-      {/* Code Editor */}
-      <SyntaxHighlightedCodeEditor />
-
       {/* How It Works */}
       <section className="relative py-32 px-6">
         <div className="max-w-6xl mx-auto">
@@ -131,12 +133,7 @@ export default function LandingPage() {
             <div className="inline-block px-4 py-2 bg-primary-100 rounded-full mb-4">
               <span className="text-sm font-bold text-primary-700">HOW IT WORKS</span>
             </div>
-            <h2 className="text-6xl md:text-7xl font-display font-black mb-6 bg-gradient-to-br from-neutral-900 to-neutral-600 bg-clip-text text-transparent">
-              Three Steps to Mastery
-            </h2>
-            <p className="text-xl text-neutral-600 max-w-2xl mx-auto">
-              Our AI-powered approach makes learning intuitive and fun
-            </p>
+            <h2 className="text-6xl md:text-7xl font-display font-black mb-6 bg-gradient-to-br from-neutral-900 to-neutral-600 bg-clip-text text-transparent">Three Steps to Mastery</h2>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-8">
@@ -168,9 +165,7 @@ export default function LandingPage() {
             <div className="inline-block px-4 py-2 bg-secondary-100 rounded-full mb-4">
               <span className="text-sm font-bold text-secondary-700">FEATURES</span>
             </div>
-            <h2 className="text-6xl md:text-7xl font-display font-black mb-6 bg-gradient-to-br from-neutral-900 to-neutral-600 bg-clip-text text-transparent">
-              Everything You Need
-            </h2>
+            <h2 className="text-6xl md:text-7xl font-display font-black mb-6 bg-gradient-to-br from-neutral-900 to-neutral-600 bg-clip-text text-transparent">Everything You Need</h2>
           </motion.div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -197,6 +192,79 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Rewards & Achievements - ÚJ SZEKCIÓ */}
+      <section className="relative py-32 px-6">
+        <div className="max-w-6xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-20">
+            <div className="inline-block px-4 py-2 bg-accent-100 rounded-full mb-4">
+              <span className="text-sm font-bold text-accent-700">REWARDS</span>
+            </div>
+            <h2 className="text-6xl md:text-7xl font-display font-black mb-6 bg-gradient-to-br from-neutral-900 to-neutral-600 bg-clip-text text-transparent">
+              Code. Earn. Redeem.
+            </h2>
+            <p className="text-xl text-neutral-600 max-w-2xl mx-auto">
+              Every challenge you solve earns CodeRift Coins. Stack them up and redeem for real rewards.
+            </p>
+          </motion.div>
+
+          {/* Coin System */}
+          <motion.div initial={{ opacity: 0, y: 50 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="relative mb-20">
+            <div className="absolute inset-0 bg-gradient-to-r from-accent-400/20 via-primary-400/20 to-secondary-400/20 rounded-[3rem] blur-3xl" />
+            <div className="relative bg-white/90 backdrop-blur-xl rounded-[3rem] p-12 border-2 border-accent-200 shadow-2xl">
+              <div className="grid md:grid-cols-3 gap-8">
+                <div className="text-center">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center text-white text-3xl font-black mx-auto mb-4 shadow-xl">
+                    💎
+                  </div>
+                  <h3 className="text-2xl font-black text-neutral-900 mb-2">Earn Coins</h3>
+                  <p className="text-neutral-600">Solve challenges, complete projects, help others. Every action earns you CodeRift Coins.</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white text-3xl font-black mx-auto mb-4 shadow-xl">
+                    🏆
+                  </div>
+                  <h3 className="text-2xl font-black text-neutral-900 mb-2">Unlock Badges</h3>
+                  <p className="text-neutral-600">Hit milestones to unlock exclusive badges. Show off your coding journey on your profile.</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-secondary-500 to-secondary-600 flex items-center justify-center text-white text-3xl font-black mx-auto mb-4 shadow-xl">
+                    🎁
+                  </div>
+                  <h3 className="text-2xl font-black text-neutral-900 mb-2">Redeem Rewards</h3>
+                  <p className="text-neutral-600">Trade coins for Pro membership, Amazon gift cards, exclusive swag, and more.</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Redemption Options */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { icon: "⚡", coins: "500", reward: "1 Month Pro", color: "from-primary-500 to-primary-600" },
+              { icon: "💳", coins: "1,000", reward: "$10 Gift Card", color: "from-secondary-500 to-secondary-600" },
+              { icon: "👕", coins: "750", reward: "CodeRift Swag", color: "from-accent-500 to-accent-600" },
+              { icon: "🎓", coins: "2,000", reward: "Certificate", color: "from-primary-600 to-secondary-600" }
+            ].map((item, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} whileHover={{ y: -5 }} className="relative group">
+                <div className={`absolute inset-0 bg-gradient-to-br ${item.color} opacity-10 rounded-3xl blur-xl group-hover:opacity-20 transition-all`} />
+                <div className="relative bg-white rounded-3xl p-6 border-2 border-neutral-200 hover:border-accent-300 transition-all shadow-lg hover:shadow-xl">
+                  <div className="text-5xl mb-4 text-center">{item.icon}</div>
+                  <div className="text-center mb-3">
+                    <div className={`inline-block px-4 py-2 bg-gradient-to-r ${item.color} rounded-full mb-2`}>
+                      <span className="text-white font-black text-lg">{item.coins} 💎</span>
+                    </div>
+                  </div>
+                  <h4 className="text-xl font-black text-neutral-900 text-center">{item.reward}</h4>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Code Editor */}
+      <SyntaxHighlightedCodeEditor />
+
       {/* Pricing */}
       <section className="relative py-32 px-6">
         <div className="max-w-6xl mx-auto">
@@ -204,9 +272,7 @@ export default function LandingPage() {
             <div className="inline-block px-4 py-2 bg-primary-100 rounded-full mb-4">
               <span className="text-sm font-bold text-primary-700">PRICING</span>
             </div>
-            <h2 className="text-6xl md:text-7xl font-display font-black mb-6 bg-gradient-to-br from-neutral-900 to-neutral-600 bg-clip-text text-transparent">
-              Start Free, Scale Up
-            </h2>
+            <h2 className="text-6xl md:text-7xl font-display font-black mb-6 bg-gradient-to-br from-neutral-900 to-neutral-600 bg-clip-text text-transparent">Start Free, Scale Up</h2>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-8">
@@ -253,9 +319,7 @@ export default function LandingPage() {
             <div className="inline-block px-4 py-2 bg-accent-100 rounded-full mb-4">
               <span className="text-sm font-bold text-accent-700">TESTIMONIALS</span>
             </div>
-            <h2 className="text-6xl md:text-7xl font-display font-black mb-6 bg-gradient-to-br from-neutral-900 to-neutral-600 bg-clip-text text-transparent">
-              Loved by Developers
-            </h2>
+            <h2 className="text-6xl md:text-7xl font-display font-black mb-6 bg-gradient-to-br from-neutral-900 to-neutral-600 bg-clip-text text-transparent">Loved by Developers</h2>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-8">
@@ -301,9 +365,7 @@ export default function LandingPage() {
                 <h2 className="text-5xl md:text-6xl font-display font-black mb-6 bg-gradient-to-br from-neutral-900 to-neutral-600 bg-clip-text text-transparent">
                   Start Coding Today
                 </h2>
-                <p className="text-xl text-neutral-600 mb-10">
-                  Join 50,000+ developers learning to code with AI
-                </p>
+                <p className="text-xl text-neutral-600 mb-10">Join 50,000+ developers learning to code with AI</p>
 
                 {!isSubmitted ? (
                   <form onSubmit={handleSubmit} className="flex gap-4 max-w-md mx-auto">
@@ -339,6 +401,9 @@ export default function LandingPage() {
           <p className="text-center text-sm text-neutral-500">© 2024 CodeRift. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* Auth Modal */}
+      <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />
     </div>
   );
 }
@@ -348,12 +413,6 @@ function SyntaxHighlightedCodeEditor() {
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  const [highlightedCode, setHighlightedCode] = useState('');
-
-  useEffect(() => {
-    const highlighted = Prism.highlight(code, Prism.languages.javascript, 'javascript');
-    setHighlightedCode(highlighted);
-  }, [code]);
 
   const runCode = () => {
     setIsRunning(true);
@@ -421,43 +480,25 @@ function SyntaxHighlightedCodeEditor() {
 
             {/* Code editor */}
             <div className="relative p-8 bg-neutral-900">
-              <style jsx>{`
-                .token.keyword { color: #C792EA; }
-                .token.function { color: #82AAFF; }
-                .token.string { color: #C3E88D; }
-                .token.operator { color: #89DDFF; }
-                .token.punctuation { color: #A6ACCD; }
-                .token.comment { color: #676E95; font-style: italic; }
-              `}</style>
-              
               <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary-500/50 to-transparent" />
               
-              <div className="flex gap-4" style={{ minHeight: '180px' }}>
+              <div className="flex gap-4">
                 {/* Line numbers */}
-                <div className="flex flex-col font-mono text-base leading-relaxed text-neutral-600 select-none">
+                <div className="flex flex-col font-mono text-base leading-relaxed text-neutral-600 select-none pt-0.5">
                   {code.split('\n').map((_, i) => (
                     <div key={i} className="text-right w-8">{i + 1}</div>
                   ))}
                 </div>
                 
-                {/* Editor area */}
-                <div className="flex-1 relative">
-                  {/* Syntax highlighting layer */}
-                  <pre 
-                    className="absolute inset-0 font-mono text-base leading-relaxed pointer-events-none m-0 p-0 opacity-90"
-                    dangerouslySetInnerHTML={{ __html: highlightedCode }}
-                  />
-                  
-                  {/* Editable textarea */}
-                  <textarea
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    className="relative w-full h-full bg-transparent text-white/5 outline-none resize-none font-mono text-base leading-relaxed caret-white selection:bg-blue-500/40 p-0 m-0"
-                    style={{ minHeight: '180px' }}
-                    spellCheck={false}
-                  />
-                </div>
+                {/* Code textarea */}
+                <textarea
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="flex-1 bg-transparent text-neutral-300 outline-none resize-none font-mono text-base leading-relaxed caret-white selection:bg-blue-500/40"
+                  style={{ minHeight: '180px' }}
+                  spellCheck={false}
+                />
               </div>
             </div>
 
