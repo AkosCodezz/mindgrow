@@ -134,25 +134,25 @@ export default function DashboardPage() {
   ];
 
   const navItems = [
-    { id: 'dashboard', icon: <Terminal className="w-4 h-4" />, label: 'Dashboard' },
-    { id: 'ranked', icon: <Swords className="w-4 h-4" />, label: 'Ranked' },
-    { id: 'rewards', icon: <Gift className="w-4 h-4" />, label: 'Rewards' },
-    { id: 'ai-coach', icon: <Brain className="w-4 h-4" />, label: 'AI Coach' },
-    { id: 'leaderboard', icon: <Trophy className="w-4 h-4" />, label: 'Leaderboard' }
-  ];
+  { id: 'dashboard', icon: <Terminal className="w-4 h-4" />, label: 'Dashboard', path: '/dashboard' },
+  { id: 'ranked', icon: <Swords className="w-4 h-4" />, label: 'Ranked', path: '/ranked' },
+  { id: 'rewards', icon: <Gift className="w-4 h-4" />, label: 'Rewards', path: '/rewards' },
+  { id: 'ai-coach', icon: <Brain className="w-4 h-4" />, label: 'AI Coach', path: '/ai-coach' },
+  { id: 'leaderboard', icon: <Trophy className="w-4 h-4" />, label: 'Leaderboard', path: '/leaderboard' }
+];
 
-  const learningItems = [
-    { id: 'projects', icon: <Code2 className="w-4 h-4" />, label: 'Projects', badge: 3 },
-    { id: 'courses', icon: <BookOpen className="w-4 h-4" />, label: 'Courses' },
-    { id: 'challenges', icon: <Target className="w-4 h-4" />, label: 'Challenges', badge: 2 },
-    { id: 'badges', icon: <Award className="w-4 h-4" />, label: 'Badges' }
-  ];
+const learningItems = [
+  { id: 'projects', icon: <Code2 className="w-4 h-4" />, label: 'Projects', badge: 3, path: '/projects' },
+  { id: 'courses', icon: <BookOpen className="w-4 h-4" />, label: 'Courses', path: '/courses' },
+  { id: 'challenges', icon: <Target className="w-4 h-4" />, label: 'Challenges', badge: 2, path: '/challenges' },
+  { id: 'badges', icon: <Award className="w-4 h-4" />, label: 'Badges', path: '/badges' }
+];
 
-  const careerItems = [
-    { id: 'portfolio', icon: <Briefcase className="w-4 h-4" />, label: 'Portfolio' },
-    { id: 'interview', icon: <MessageSquare className="w-4 h-4" />, label: 'Mock Interview' },
-    { id: 'settings', icon: <Settings className="w-4 h-4" />, label: 'Settings' }
-  ];
+const careerItems = [
+  { id: 'portfolio', icon: <Briefcase className="w-4 h-4" />, label: 'Portfolio', path: '/portfolio' },
+  { id: 'interview', icon: <MessageSquare className="w-4 h-4" />, label: 'Mock Interview', path: '/interview' },
+  { id: 'settings', icon: <Settings className="w-4 h-4" />, label: 'Settings', path: '/settings' }
+];
 
   const activeContent = { project: currentProject, challenge: currentChallenge, path: learningPath }[activeCard];
 
@@ -196,20 +196,29 @@ export default function DashboardPage() {
         <nav className="px-3 flex-1 overflow-y-auto">
           <div className={`text-[10px] font-bold ${isDark ? 'text-neutral-500' : 'text-neutral-400'} uppercase tracking-wider px-3 py-2 mt-2`}>Main</div>
           {navItems.map((item) => (
-            <motion.div key={item.id} whileHover={{ x: 4 }} onClick={() => setActiveNav(item.id)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all mb-0.5 ${activeNav === item.id ? `${isDark ? 'bg-primary-600/15 text-primary-400 border-primary-600/25' : 'bg-primary-100 text-primary-700 border-primary-200'} border font-semibold` : `${isDark ? 'text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-300' : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700'} border border-transparent`}`}>
+            <motion.div key={item.id} whileHover={{ x: 4 }} onClick={() => {
+  setActiveNav(item.id);
+  if (item.path) router.push(item.path);
+}} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all mb-0.5 ${activeNav === item.id ? `${isDark ? 'bg-primary-600/15 text-primary-400 border-primary-600/25' : 'bg-primary-100 text-primary-700 border-primary-200'} border font-semibold` : `${isDark ? 'text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-300' : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700'} border border-transparent`}`}>
               {item.icon}<span className="text-sm flex-1">{item.label}</span>
             </motion.div>
           ))}
           <div className={`text-[10px] font-bold ${isDark ? 'text-neutral-500' : 'text-neutral-400'} uppercase tracking-wider px-3 py-2 mt-4`}>Learning</div>
           {learningItems.map((item) => (
-            <motion.div key={item.id} whileHover={{ x: 4 }} onClick={() => setActiveNav(item.id)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all mb-0.5 ${activeNav === item.id ? `${isDark ? 'bg-primary-600/15 text-primary-400 border-primary-600/25' : 'bg-primary-100 text-primary-700 border-primary-200'} border font-semibold` : `${isDark ? 'text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-300' : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700'} border border-transparent`}`}>
+            <motion.div key={item.id} whileHover={{ x: 4 }} onClick={() => {
+  setActiveNav(item.id);
+  if (item.path) router.push(item.path);
+}} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all mb-0.5 ${activeNav === item.id ? `${isDark ? 'bg-primary-600/15 text-primary-400 border-primary-600/25' : 'bg-primary-100 text-primary-700 border-primary-200'} border font-semibold` : `${isDark ? 'text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-300' : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700'} border border-transparent`}`}>
               {item.icon}<span className="text-sm flex-1">{item.label}</span>
               {item.badge && <span className={`${isDark ? 'bg-primary-600' : 'bg-primary-500'} text-white text-[10px] font-bold px-2 py-0.5 rounded-full font-mono`}>{item.badge}</span>}
             </motion.div>
           ))}
           <div className={`text-[10px] font-bold ${isDark ? 'text-neutral-500' : 'text-neutral-400'} uppercase tracking-wider px-3 py-2 mt-4`}>Career</div>
           {careerItems.map((item) => (
-            <motion.div key={item.id} whileHover={{ x: 4 }} onClick={() => setActiveNav(item.id)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all mb-0.5 ${activeNav === item.id ? `${isDark ? 'bg-primary-600/15 text-primary-400 border-primary-600/25' : 'bg-primary-100 text-primary-700 border-primary-200'} border font-semibold` : `${isDark ? 'text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-300' : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700'} border border-transparent`}`}>
+            <motion.div key={item.id} whileHover={{ x: 4 }} onClick={() => {
+  setActiveNav(item.id);
+  if (item.path) router.push(item.path);
+}} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all mb-0.5 ${activeNav === item.id ? `${isDark ? 'bg-primary-600/15 text-primary-400 border-primary-600/25' : 'bg-primary-100 text-primary-700 border-primary-200'} border font-semibold` : `${isDark ? 'text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-300' : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700'} border border-transparent`}`}>
               {item.icon}<span className="text-sm flex-1">{item.label}</span>
             </motion.div>
           ))}
