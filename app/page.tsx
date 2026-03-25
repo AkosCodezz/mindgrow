@@ -192,7 +192,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Rewards & Achievements */}
+      {/* Rewards & Achievements - ÚJ SZEKCIÓ */}
       <section className="relative py-32 px-6">
         <div className="max-w-6xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-20">
@@ -207,6 +207,7 @@ export default function LandingPage() {
             </p>
           </motion.div>
 
+          {/* Coin System */}
           <motion.div initial={{ opacity: 0, y: 50 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="relative mb-20">
             <div className="absolute inset-0 bg-gradient-to-r from-accent-400/20 via-primary-400/20 to-secondary-400/20 rounded-[3rem] blur-3xl" />
             <div className="relative bg-white/90 backdrop-blur-xl rounded-[3rem] p-12 border-2 border-accent-200 shadow-2xl">
@@ -236,6 +237,7 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
+          {/* Redemption Options */}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { icon: "⚡", coins: "500", reward: "1 Month Pro", color: "from-primary-500 to-primary-600" },
@@ -406,146 +408,11 @@ export default function LandingPage() {
   );
 }
 
-// ─── Syntax Highlighting ─────────────────────────────────────────────
-function highlightJS(code: string): React.ReactNode[] {
-  const tokens: { type: string; value: string }[] = [];
-  let i = 0;
-
-  const keywords = new Set(['function', 'return', 'const', 'let', 'var', 'if', 'else', 'for', 'while', 'class', 'export', 'import', 'from', 'new', 'this', 'try', 'catch', 'throw', 'async', 'await', 'of', 'in', 'typeof', 'instanceof']);
-  const builtins = new Set(['console', 'Math', 'Array', 'Object', 'String', 'Number', 'JSON', 'Promise', 'true', 'false', 'null', 'undefined']);
-
-  while (i < code.length) {
-    // Comments
-    if (code[i] === '/' && code[i + 1] === '/') {
-      let comment = '';
-      while (i < code.length && code[i] !== '\n') {
-        comment += code[i++];
-      }
-      tokens.push({ type: 'comment', value: comment });
-      continue;
-    }
-
-    // Strings (double quotes)
-    if (code[i] === '"') {
-      let str = '"';
-      i++;
-      while (i < code.length && code[i] !== '"') {
-        str += code[i++];
-      }
-      if (i < code.length) str += code[i++];
-      tokens.push({ type: 'string', value: str });
-      continue;
-    }
-
-    // Strings (single quotes)
-    if (code[i] === "'") {
-      let str = "'";
-      i++;
-      while (i < code.length && code[i] !== "'") {
-        str += code[i++];
-      }
-      if (i < code.length) str += code[i++];
-      tokens.push({ type: 'string', value: str });
-      continue;
-    }
-
-    // Template literals
-    if (code[i] === '`') {
-      let str = '`';
-      i++;
-      while (i < code.length && code[i] !== '`') {
-        str += code[i++];
-      }
-      if (i < code.length) str += code[i++];
-      tokens.push({ type: 'string', value: str });
-      continue;
-    }
-
-    // Numbers
-    if (/\d/.test(code[i])) {
-      let num = '';
-      while (i < code.length && /[\d.]/.test(code[i])) {
-        num += code[i++];
-      }
-      tokens.push({ type: 'number', value: num });
-      continue;
-    }
-
-    // Words (identifiers, keywords)
-    if (/[a-zA-Z_$]/.test(code[i])) {
-      let word = '';
-      while (i < code.length && /[a-zA-Z0-9_$]/.test(code[i])) {
-        word += code[i++];
-      }
-      if (keywords.has(word)) {
-        tokens.push({ type: 'keyword', value: word });
-      } else if (builtins.has(word)) {
-        tokens.push({ type: 'builtin', value: word });
-      } else if (i < code.length && code[i] === '(') {
-        tokens.push({ type: 'function', value: word });
-      } else {
-        tokens.push({ type: 'identifier', value: word });
-      }
-      continue;
-    }
-
-    // Operators and punctuation
-    if (/[+\-*/%=<>!&|^~?:]/.test(code[i])) {
-      let op = '';
-      while (i < code.length && /[+\-*/%=<>!&|^~?:]/.test(code[i])) {
-        op += code[i++];
-      }
-      tokens.push({ type: 'operator', value: op });
-      continue;
-    }
-
-    // Brackets
-    if (/[{}()[\]]/.test(code[i])) {
-      tokens.push({ type: 'bracket', value: code[i] });
-      i++;
-      continue;
-    }
-
-    // Everything else (whitespace, newlines, etc.)
-    tokens.push({ type: 'plain', value: code[i] });
-    i++;
-  }
-
-  const colorMap: Record<string, string> = {
-    keyword: '#c678dd',    // purple
-    string: '#98c379',     // green
-    number: '#d19a66',     // orange
-    comment: '#5c6370',    // gray
-    builtin: '#e5c07b',    // yellow
-    function: '#61afef',   // blue
-    operator: '#56b6c2',   // cyan
-    bracket: '#abb2bf',    // light gray
-    identifier: '#e06c75', // red/pink for params
-    plain: '#abb2bf',      // default
-  };
-
-  return tokens.map((token, idx) => (
-    <span key={idx} style={{ color: colorMap[token.type] || '#abb2bf' }}>
-      {token.value}
-    </span>
-  ));
-}
-
 function SyntaxHighlightedCodeEditor() {
   const [code, setCode] = useState(`function greet(name) {\n  return "Hello, " + name;\n}`);
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const preRef = useRef<HTMLPreElement>(null);
-
-  // Sync scroll between textarea and highlighted overlay
-  const handleScroll = () => {
-    if (textareaRef.current && preRef.current) {
-      preRef.current.scrollTop = textareaRef.current.scrollTop;
-      preRef.current.scrollLeft = textareaRef.current.scrollLeft;
-    }
-  };
 
   const runCode = () => {
     setIsRunning(true);
@@ -573,23 +440,7 @@ function SyntaxHighlightedCodeEditor() {
       e.preventDefault();
       runCode();
     }
-    // Tab support
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const textarea = textareaRef.current;
-      if (textarea) {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const newCode = code.substring(0, start) + '  ' + code.substring(end);
-        setCode(newCode);
-        setTimeout(() => {
-          textarea.selectionStart = textarea.selectionEnd = start + 2;
-        }, 0);
-      }
-    }
   };
-
-  const lines = code.split('\n');
 
   return (
     <section className="relative py-32 px-6">
@@ -605,7 +456,6 @@ function SyntaxHighlightedCodeEditor() {
         <motion.div initial={{ opacity: 0, y: 50 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="relative group">
           <div className="absolute -inset-4 bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 rounded-[3rem] blur-3xl opacity-20 group-hover:opacity-40 transition-all" />
           <div className="relative bg-neutral-900 rounded-[3rem] overflow-hidden border border-neutral-700/50 shadow-2xl">
-            {/* Title bar */}
             <div className="bg-neutral-800/90 px-6 py-4 flex items-center justify-between border-b border-neutral-700/50">
               <div className="flex gap-2">
                 <div className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 cursor-pointer transition-colors" />
@@ -616,7 +466,6 @@ function SyntaxHighlightedCodeEditor() {
               <div className="w-16" />
             </div>
 
-            {/* Challenge description */}
             <div className="px-8 py-6 bg-neutral-800/50 border-b border-neutral-700/30">
               <div className="flex gap-3 mb-4">
                 <div className="px-3 py-1 bg-green-500/20 text-green-300 text-xs font-bold rounded-full border border-green-500/30">BEGINNER</div>
@@ -629,41 +478,27 @@ function SyntaxHighlightedCodeEditor() {
               </p>
             </div>
 
-            {/* Code editor with syntax highlighting */}
+            {/* Code editor */}
             <div className="relative p-8 bg-neutral-900">
               <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary-500/50 to-transparent" />
               
               <div className="flex gap-4">
                 {/* Line numbers */}
-                <div className="flex flex-col font-mono text-base leading-[1.65] text-neutral-600 select-none">
-                  {lines.map((_, i) => (
+                <div className="flex flex-col font-mono text-base leading-relaxed text-neutral-600 select-none pt-0.5">
+                  {code.split('\n').map((_, i) => (
                     <div key={i} className="text-right w-8">{i + 1}</div>
                   ))}
                 </div>
                 
-                {/* Editor area: overlay approach */}
-                <div className="flex-1 relative" style={{ minHeight: '180px' }}>
-                  {/* Highlighted code (visible, not interactive) */}
-                  <pre
-                    ref={preRef}
-                    className="absolute inset-0 font-mono text-base leading-[1.65] pointer-events-none overflow-hidden whitespace-pre-wrap break-words m-0 p-0"
-                    aria-hidden="true"
-                  >
-                    {highlightJS(code)}
-                  </pre>
-
-                  {/* Textarea (transparent text, handles input) */}
-                  <textarea
-                    ref={textareaRef}
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    onScroll={handleScroll}
-                    className="relative w-full h-full bg-transparent outline-none resize-none font-mono text-base leading-[1.65] caret-white selection:bg-blue-500/40 whitespace-pre-wrap break-words m-0 p-0"
-                    style={{ color: 'transparent', minHeight: '180px', caretColor: 'white' }}
-                    spellCheck={false}
-                  />
-                </div>
+                {/* Code textarea */}
+                <textarea
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="flex-1 bg-transparent text-neutral-300 outline-none resize-none font-mono text-base leading-relaxed caret-white selection:bg-blue-500/40"
+                  style={{ minHeight: '180px' }}
+                  spellCheck={false}
+                />
               </div>
             </div>
 
