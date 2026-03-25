@@ -4,11 +4,21 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* RGB triplets so Tailwind can do alpha: rgb(var(--cr-*) / <alpha-value>) */
+  --cr-primary: 107 142 35;
+  --cr-secondary: 0 119 190;
+  --cr-accent: 255 107 107;
+  --cr-bg: 245 243 240;
+  --cr-fg: 17 24 39;
+}
+
 @layer base {
   body {
-    @apply bg-neutral-50 text-neutral-900;
     font-family: 'Outfit', sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+    background: rgb(var(--cr-bg));
+    color: rgb(var(--cr-fg));
   }
 
   html {
@@ -35,15 +45,16 @@
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-neutral-100;
+    background: color-mix(in srgb, rgb(var(--cr-bg)) 88%, #ffffff);
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-gradient-to-b from-primary-500 to-secondary-500 rounded-full;
+    border-radius: 9999px;
+    background: linear-gradient(to bottom, rgb(var(--cr-primary)), rgb(var(--cr-secondary)));
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply from-primary-600 to-secondary-600;
+    background: linear-gradient(to bottom, rgb(var(--cr-secondary)), rgb(var(--cr-accent)));
   }
 }
 
@@ -95,7 +106,8 @@
 
 /* Selection styling */
 ::selection {
-  @apply bg-primary-500/30 text-primary-900;
+  background: color-mix(in srgb, rgb(var(--cr-primary)) 30%, transparent);
+  color: rgb(var(--cr-fg));
 }
 
 /* Focus visible */
@@ -110,12 +122,15 @@ button, a, input, textarea, select {
 
 /* Gradient text utilities */
 .gradient-text {
-  @apply bg-gradient-to-r from-primary-600 via-secondary-600 to-accent-600 bg-clip-text text-transparent;
+  background-image: linear-gradient(to right, rgb(var(--cr-primary)), rgb(var(--cr-secondary)), rgb(var(--cr-accent)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 /* Liquid gradient background */
 .liquid-gradient {
-  background: linear-gradient(-45deg, #6B8E23, #0077BE, #FF6B6B, #4A90E2);
+  background: linear-gradient(-45deg, rgb(var(--cr-primary)), rgb(var(--cr-secondary)), rgb(var(--cr-accent)), rgb(var(--cr-secondary)));
   background-size: 400% 400%;
   animation: gradient-shift 15s ease infinite;
 }

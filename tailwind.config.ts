@@ -9,42 +9,27 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#f0f7ed',
-          100: '#dcecd4',
-          200: '#b9d9a9',
-          300: '#92c379',
-          400: '#6fb050',
-          500: '#6B8E23',
-          600: '#557320',
-          700: '#44591a',
-          800: '#364716',
-          900: '#2D5016',
-        },
-        secondary: {
-          50: '#e6f4fb',
-          100: '#cce9f7',
-          200: '#99d3ef',
-          300: '#66bde7',
-          400: '#4A90E2',
-          500: '#0077BE',
-          600: '#005f98',
-          700: '#004872',
-          800: '#00304c',
-          900: '#001826',
-        },
-        accent: {
-          50: '#fff4f1',
-          100: '#ffe9e3',
-          200: '#ffd3c7',
-          300: '#ffbdab',
-          400: '#FFB347',
-          500: '#FF6B6B',
-          600: '#e85555',
-          700: '#cc3f3f',
-          800: '#b02929',
-          900: '#8f1313',
-        },
+        // Themeable colors via CSS variables.
+        // We map all shades to the same CSS var so existing classes like `primary-600`
+        // update globally when the theme changes.
+        primary: Object.fromEntries(
+          [50, 100, 200, 300, 400, 500, 600, 700, 800, 900].map((k) => [
+            k,
+            'rgb(var(--cr-primary) / <alpha-value>)',
+          ])
+        ) as any,
+        secondary: Object.fromEntries(
+          [50, 100, 200, 300, 400, 500, 600, 700, 800, 900].map((k) => [
+            k,
+            'rgb(var(--cr-secondary) / <alpha-value>)',
+          ])
+        ) as any,
+        accent: Object.fromEntries(
+          [50, 100, 200, 300, 400, 500, 600, 700, 800, 900].map((k) => [
+            k,
+            'rgb(var(--cr-accent) / <alpha-value>)',
+          ])
+        ) as any,
         neutral: {
           50: '#F5F3F0',
           100: '#E8E5E1',

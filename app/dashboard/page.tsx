@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -51,6 +51,114 @@ export default function DashboardPage() {
     router.push('/');
   };
 
+  const stats = { coins: 1250, xp: 3840, level: 12, challengesSolved: 47, streak: 7, rank: 'Gold' };
+  const streakDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  const streakStatus = [true, true, true, true, true, true, false];
+
+  type ContributionDay = {
+    date: string; // YYYY-MM-DD
+    value: number; // raw activity score
+    level: 0 | 1 | 2 | 3 | 4; // color bucket
+    hours: number;
+    projects: number;
+    tasks: number;
+  };
+
+  const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+
+  const formatISODate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const startOfWeek = (d: Date, weekStartsOn: 0 | 1) => {
+    const date = new Date(d);
+    const day = date.getDay(); // 0..6
+    const diff = (day - weekStartsOn + 7) % 7;
+    date.setDate(date.getDate() - diff);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  };
+
+  const getMonthLabel = (d: Date) =>
+    d.toLocaleString(undefined, { month: 'short' });
+
+  const generateContributionGrid = (days: number, weekStartsOn: 0 | 1) => {
+    // MOCK but deterministic-ish: stable distribution based on date number (no Math.random)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(today);
+    start.setDate(start.getDate() - (days - 1));
+
+    // Align to week boundary so grid columns are full weeks
+    const gridStart = startOfWeek(start, weekStartsOn);
+    const gridEnd = new Date(today);
+    const endOfThisWeek = startOfWeek(gridEnd, weekStartsOn);
+    endOfThisWeek.setDate(endOfThisWeek.getDate() + 6);
+
+    const all: ContributionDay[] = [];
+    for (let d = new Date(gridStart); d <= endOfThisWeek; d.setDate(d.getDate() + 1)) {
+      const date = new Date(d);
+      const iso = formatISODate(date);
+
+      // Deterministic pseudo-activity from date: makes UI look real but stable between renders
+      const seed = (date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate()) % 97;
+      const base = (seed * 37) % 23; // 0..22
+      const weekendBoost = date.getDay() === 0 || date.getDay() === 6 ? 1.1 : 1;
+      const value = Math.floor(base * weekendBoost);
+
+      const hours = parseFloat(clamp(value / 6, 0, 6).toFixed(1));
+      const projects = value > 0 ? clamp(Math.floor(value / 9), 0, 3) : 0;
+      const tasks = value > 0 ? clamp(Math.floor(value / 2.5), 0, 10) : 0;
+
+      all.push({ date: iso, value, hours, projects, tasks, level: 0 });
+    }
+
+    const max = Math.max(...all.map((x) => x.value), 0);
+    const toLevel = (v: number): 0 | 1 | 2 | 3 | 4 => {
+      if (v <= 0) return 0;
+      if (max <= 0) return 0;
+      const ratio = v / max;
+      if (ratio < 0.25) return 1;
+      if (ratio < 0.5) return 2;
+      if (ratio < 0.75) return 3;
+      return 4;
+    };
+
+    const withLevels = all.map((x) => ({ ...x, level: toLevel(x.value) }));
+
+    // Split into weeks (columns), each contains 7 days (rows)
+    const weeks: ContributionDay[][] = [];
+    for (let i = 0; i < withLevels.length; i += 7) weeks.push(withLevels.slice(i, i + 7));
+
+    // Month labels on top: show month when first week containing a day from that month
+    const monthLabels = weeks.map((week) => {
+      const firstOfMonth = week.find((day) => day.date.endsWith('-01'));
+      if (firstOfMonth) {
+        const [y, m] = firstOfMonth.date.split('-').map(Number);
+        return getMonthLabel(new Date(y, (m || 1) - 1, 1));
+      }
+      // alternatively show label if month changes inside week
+      const first = week[0];
+      if (!first) return '';
+      const [y, m] = first.date.split('-').map(Number);
+      const label = getMonthLabel(new Date(y, (m || 1) - 1, 1));
+      // Only show when week includes first visible day in month
+      const hasMonthChange = week.some((d) => d.date.slice(0, 7) !== first.date.slice(0, 7));
+      return hasMonthChange ? label : '';
+    });
+
+    // Stats: only count last N requested days (not padded grid)
+    const cutoff = formatISODate(start);
+    const lastNDays = withLevels.filter((d) => d.date >= cutoff && d.date <= formatISODate(today));
+
+    return { weeks, monthLabels, lastNDays };
+  };
+
+  const contribution = useMemo(() => generateContributionGrid(98, 1), [isDark]);
+
   if (loading) {
     return (
       <div className={`min-h-screen ${isDark ? 'bg-neutral-950' : 'bg-neutral-50'} flex items-center justify-center`}>
@@ -60,32 +168,6 @@ export default function DashboardPage() {
       </div>
     );
   }
-
-  const stats = { coins: 1250, xp: 3840, level: 12, challengesSolved: 47, streak: 7, rank: 'Gold' };
-  const streakDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-  const streakStatus = [true, true, true, true, true, true, false];
-
-  const generateActivityData = () => {
-    const weeks = 12;
-    const data = [];
-    const today = new Date();
-    for (let week = weeks - 1; week >= 0; week--) {
-      const weekData = [];
-      for (let day = 0; day < 7; day++) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - (week * 7 + (6 - day)));
-        const level = Math.floor(Math.random() * 5);
-        const hours = level * 1.5;
-        const projects = level > 0 ? Math.floor(Math.random() * 3) : 0;
-        const tasks = level > 0 ? Math.floor(Math.random() * 8) : 0;
-        weekData.push({ date: date.toISOString().split('T')[0], level, hours: parseFloat(hours.toFixed(1)), projects, tasks, day: date.getDay() });
-      }
-      data.push(weekData);
-    }
-    return data;
-  };
-
-  const activityData = generateActivityData();
 
   const currentProject = {
     title: 'E-commerce Dashboard',
@@ -149,6 +231,7 @@ const learningItems = [
 ];
 
 const careerItems = [
+  { id: 'profile', icon: <Users className="w-4 h-4" />, label: 'Profile', path: '/profile' },
   { id: 'portfolio', icon: <Briefcase className="w-4 h-4" />, label: 'Portfolio', path: '/portfolio' },
   { id: 'interview', icon: <MessageSquare className="w-4 h-4" />, label: 'Mock Interview', path: '/interview' },
   { id: 'settings', icon: <Settings className="w-4 h-4" />, label: 'Settings', path: '/settings' }
@@ -336,7 +419,7 @@ const careerItems = [
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className={`text-sm font-black ${isDark ? 'text-white' : 'text-neutral-900'} mb-0.5`}>Activity Tracker</h3>
-                  <p className={`text-xs ${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>Last 12 weeks</p>
+                  <p className={`text-xs ${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>Last ~14 weeks</p>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <span className={`${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>Less</span>
@@ -348,39 +431,67 @@ const careerItems = [
                   <span className={`${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>More</span>
                 </div>
               </div>
-              <div className="flex gap-0.5 mb-1 ml-6">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => <div key={i} className={`text-[9px] ${isDark ? 'text-neutral-600' : 'text-neutral-400'} w-[13px] text-center`}>{i % 2 === 1 ? day[0] : ''}</div>)}
-              </div>
-              <div className="flex gap-0.5">
-                <div className="flex flex-col gap-0.5 justify-around text-[9px] text-neutral-500 pr-1"><span>Mon</span><span>Wed</span><span>Fri</span></div>
-                <div className="flex gap-0.5">
-                  {activityData.map((week, weekIndex) => (
-                    <div key={weekIndex} className="flex flex-col gap-0.5">
-                      {week.map((day, dayIndex) => (
-                        <motion.div key={dayIndex} whileHover={{ scale: 1.3 }} className={`w-[13px] h-[13px] rounded-sm ${getActivityColor(day.level)} cursor-pointer relative group transition-all`} title={`${day.date}: ${day.hours}h • ${day.projects} projects • ${day.tasks} tasks`}>
-                          <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 ${isDark ? 'bg-neutral-800' : 'bg-neutral-700'} text-white text-[10px] rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity`}>
-                            <div className="font-bold">{day.date}</div>
-                            <div>{day.hours}h coding</div>
-                            <div>{day.projects} projects</div>
-                            <div>{day.tasks} tasks</div>
-                          </div>
-                        </motion.div>
+              <div className="overflow-x-auto pb-1">
+                <div className="min-w-[720px]">
+                  {/* Month labels */}
+                  <div className="flex gap-0.5 mb-1 ml-8">
+                    {contribution.monthLabels.map((label, i) => (
+                      <div
+                        key={i}
+                        className={`text-[9px] ${isDark ? 'text-neutral-600' : 'text-neutral-400'} w-[16px] text-center`}
+                      >
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-0.5">
+                    {/* Day labels */}
+                    <div className="flex flex-col gap-0.5 text-[9px] text-neutral-500 pr-1">
+                      <div className="h-[13px]" />
+                      <div className="h-[13px] flex items-center">Mon</div>
+                      <div className="h-[13px]" />
+                      <div className="h-[13px] flex items-center">Wed</div>
+                      <div className="h-[13px]" />
+                      <div className="h-[13px] flex items-center">Fri</div>
+                      <div className="h-[13px]" />
+                    </div>
+
+                    {/* Grid (columns=weeks, rows=days) */}
+                    <div className="flex gap-0.5">
+                      {contribution.weeks.map((week, weekIndex) => (
+                        <div key={weekIndex} className="flex flex-col gap-0.5">
+                          {week.map((day, dayIndex) => (
+                            <motion.div
+                              key={dayIndex}
+                              whileHover={{ scale: 1.35 }}
+                              className={`w-[16px] h-[16px] rounded-[4px] ${getActivityColor(day.level)} cursor-pointer relative group transition-all`}
+                              title={`${day.date}: ${day.tasks} tasks • ${day.hours}h`}
+                            >
+                              <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-2 ${isDark ? 'bg-neutral-800' : 'bg-neutral-900'} text-white text-[10px] rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity shadow-xl`}>
+                                <div className="font-bold">{day.date}</div>
+                                <div className="text-neutral-200">{day.tasks} tasks • {day.projects} projects</div>
+                                <div className="text-neutral-400">{day.hours}h focused time</div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
                       ))}
                     </div>
-                  ))}
+                  </div>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-neutral-800/50">
                 <div className="text-center">
-                  <div className={`text-xs font-bold ${isDark ? 'text-primary-400' : 'text-primary-600'} mb-0.5`}>{activityData.flat().reduce((sum, day) => sum + day.hours, 0).toFixed(0)}h</div>
+                  <div className={`text-xs font-bold ${isDark ? 'text-primary-400' : 'text-primary-600'} mb-0.5`}>{contribution.lastNDays.reduce((sum, day) => sum + day.hours, 0).toFixed(0)}h</div>
                   <div className={`text-[10px] ${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>Total Time</div>
                 </div>
                 <div className="text-center">
-                  <div className={`text-xs font-bold ${isDark ? 'text-secondary-400' : 'text-secondary-600'} mb-0.5`}>{activityData.flat().reduce((sum, day) => sum + day.projects, 0)}</div>
+                  <div className={`text-xs font-bold ${isDark ? 'text-secondary-400' : 'text-secondary-600'} mb-0.5`}>{contribution.lastNDays.reduce((sum, day) => sum + day.projects, 0)}</div>
                   <div className={`text-[10px] ${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>Projects</div>
                 </div>
                 <div className="text-center">
-                  <div className={`text-xs font-bold ${isDark ? 'text-accent-400' : 'text-accent-600'} mb-0.5`}>{activityData.flat().reduce((sum, day) => sum + day.tasks, 0)}</div>
+                  <div className={`text-xs font-bold ${isDark ? 'text-accent-400' : 'text-accent-600'} mb-0.5`}>{contribution.lastNDays.reduce((sum, day) => sum + day.tasks, 0)}</div>
                   <div className={`text-[10px] ${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>Tasks Done</div>
                 </div>
               </div>

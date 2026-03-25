@@ -265,6 +265,9 @@ export default function LandingPage() {
       {/* Code Editor */}
       <SyntaxHighlightedCodeEditor />
 
+      {/* Theme Playground (landing-only preview) */}
+      <ThemePlayground />
+
       {/* Pricing */}
       <section className="relative py-32 px-6">
         <div className="max-w-6xl mx-auto">
@@ -408,11 +411,109 @@ export default function LandingPage() {
   );
 }
 
+function ThemePlayground() {
+  const themes = [
+    { id: 'Classic', primary: [107, 142, 35], secondary: [0, 119, 190], accent: [255, 107, 107], bg: [245, 243, 240], fg: [17, 24, 39] },
+    { id: 'Cyber Neon', primary: [139, 92, 246], secondary: [34, 211, 238], accent: [244, 114, 182], bg: [7, 10, 18], fg: [229, 231, 235] },
+    { id: 'Sunset Fire', primary: [249, 115, 22], secondary: [251, 113, 133], accent: [251, 191, 36], bg: [11, 10, 10], fg: [245, 245, 245] },
+    { id: 'Nord Frost', primary: [136, 192, 208], secondary: [129, 161, 193], accent: [163, 190, 140], bg: [11, 17, 26], fg: [229, 233, 240] },
+    { id: 'Monokai Pro', primary: [166, 226, 46], secondary: [102, 217, 239], accent: [249, 38, 114], bg: [11, 12, 16], fg: [248, 248, 242] },
+  ] as const;
+
+  const [active, setActive] = useState<(typeof themes)[number]>(themes[0]);
+
+  const style = {
+    // scoped vars for preview area ONLY (doesn't theme the full landing page)
+    ['--cr-primary' as any]: `${active.primary[0]} ${active.primary[1]} ${active.primary[2]}`,
+    ['--cr-secondary' as any]: `${active.secondary[0]} ${active.secondary[1]} ${active.secondary[2]}`,
+    ['--cr-accent' as any]: `${active.accent[0]} ${active.accent[1]} ${active.accent[2]}`,
+    ['--cr-bg' as any]: `${active.bg[0]} ${active.bg[1]} ${active.bg[2]}`,
+    ['--cr-fg' as any]: `${active.fg[0]} ${active.fg[1]} ${active.fg[2]}`,
+  };
+
+  return (
+    <section className="relative py-24 px-6">
+      <div className="max-w-6xl mx-auto">
+        <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
+          <div className="inline-block px-4 py-2 bg-primary-100 rounded-full mb-4">
+            <span className="text-sm font-bold text-primary-700">THEME PLAYGROUND</span>
+          </div>
+          <h2 className="text-5xl md:text-6xl font-display font-black mb-4 bg-gradient-to-br from-neutral-900 to-neutral-600 bg-clip-text text-transparent">
+            Try themes without logging in
+          </h2>
+          <p className="text-lg text-neutral-600">This preview is scoped to the box below (landing stays default).</p>
+        </motion.div>
+
+        <div className="flex flex-wrap justify-center gap-2 mb-6">
+          {themes.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setActive(t)}
+              className={`px-4 py-2 rounded-full text-sm font-bold border transition-all ${
+                active.id === t.id ? 'bg-neutral-900 text-white border-neutral-900' : 'bg-white/70 border-neutral-200 text-neutral-700 hover:bg-white'
+              }`}
+            >
+              {t.id}
+            </button>
+          ))}
+        </div>
+
+        <motion.div whileHover={{ y: -4 }} className="relative">
+          <div className="absolute -inset-4 bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 rounded-[2.5rem] blur-3xl opacity-15" />
+          <div
+            style={style as any}
+            className="relative rounded-[2.5rem] border border-neutral-200 bg-white/90 backdrop-blur-xl overflow-hidden"
+          >
+            <div className="p-7" style={{ background: 'rgb(var(--cr-bg))', color: 'rgb(var(--cr-fg))' }}>
+              <div className="flex items-center justify-between mb-5">
+                <div className="text-sm font-black">
+                  Preview: <span className="gradient-text">{active.id}</span>
+                </div>
+                <div className="text-xs font-mono opacity-70">scoped vars</div>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="p-5 rounded-2xl border border-black/10" style={{ background: 'color-mix(in srgb, rgb(var(--cr-bg)) 85%, white)' }}>
+                  <div className="text-xs font-bold opacity-70 mb-2">Buttons</div>
+                  <div className="flex gap-2">
+                    <div className="px-3 py-2 rounded-xl text-white font-bold" style={{ background: 'rgb(var(--cr-primary))' }}>Primary</div>
+                    <div className="px-3 py-2 rounded-xl text-white font-bold" style={{ background: 'rgb(var(--cr-secondary))' }}>Secondary</div>
+                  </div>
+                  <div className="mt-3 px-3 py-2 rounded-xl font-bold" style={{ background: 'color-mix(in srgb, rgb(var(--cr-accent)) 18%, transparent)' }}>
+                    Accent chip
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl border border-black/10" style={{ background: 'color-mix(in srgb, rgb(var(--cr-bg)) 85%, white)' }}>
+                  <div className="text-xs font-bold opacity-70 mb-2">Gradient</div>
+                  <div className="h-10 rounded-xl" style={{ background: 'linear-gradient(90deg, rgb(var(--cr-primary)), rgb(var(--cr-secondary)), rgb(var(--cr-accent)))' }} />
+                  <div className="mt-3 text-sm font-black gradient-text">Gradient text sample</div>
+                </div>
+
+                <div className="p-5 rounded-2xl border border-black/10" style={{ background: 'color-mix(in srgb, rgb(var(--cr-bg)) 85%, white)' }}>
+                  <div className="text-xs font-bold opacity-70 mb-2">Focus ring</div>
+                  <input
+                    className="w-full px-4 py-3 rounded-xl outline-none border border-black/10"
+                    style={{ boxShadow: '0 0 0 3px color-mix(in srgb, rgb(var(--cr-primary)) 35%, transparent)' }}
+                    placeholder="Focus preview"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
 function SyntaxHighlightedCodeEditor() {
-  const [code, setCode] = useState(`function greet(name) {\n  return "Hello, " + name;\n}`);
+  const initialChallenge = `function greet(name) {\n  // TODO: return a greeting string\n}\n\nconsole.log(greet("World"));`;
+  const [code, setCode] = useState(initialChallenge);
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [cursorPos, setCursorPos] = useState(0);
 
   const runCode = () => {
     setIsRunning(true);
@@ -425,7 +526,7 @@ function SyntaxHighlightedCodeEditor() {
       if (!hasReturn) {
         setOutput('❌ Missing return statement!');
       } else if (hasReturn && hasPlus && hasParam) {
-        setOutput('✅ Perfect! Your function works!\n\nTest:\ngreet("World") → "Hello, World" ✓\ngreet("CodeRift") → "Hello, CodeRift" ✓\n\n🎉 Challenge complete!');
+        setOutput('✅ Perfect! Your function works!\n\nTests:\n- greet("World") → "Hello, World"\n- greet("CodeRift") → "Hello, CodeRift"\n\n🎉 Challenge complete!');
       } else if (hasReturn) {
         setOutput('⚠️ Almost! Make sure to use the name parameter');
       } else {
@@ -441,6 +542,177 @@ function SyntaxHighlightedCodeEditor() {
       runCode();
     }
   };
+
+  const escapeHtml = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const highlightJS = (source: string) => {
+    // Small, safe tokenizer (so we NEVER regex across inserted <span> tags)
+    type Seg = { t: 'plain' | 'comment' | 'string'; v: string };
+    const segs: Seg[] = [];
+
+    const push = (t: Seg['t'], v: string) => {
+      if (!v) return;
+      const last = segs[segs.length - 1];
+      if (last && last.t === t) last.v += v;
+      else segs.push({ t, v });
+    };
+
+    let i = 0;
+    while (i < source.length) {
+      const ch = source[i];
+      const next = source[i + 1];
+
+      // line comment
+      if (ch === '/' && next === '/') {
+        const start = i;
+        i += 2;
+        while (i < source.length && source[i] !== '\n') i++;
+        push('comment', source.slice(start, i));
+        continue;
+      }
+
+      // block comment
+      if (ch === '/' && next === '*') {
+        const start = i;
+        i += 2;
+        while (i < source.length && !(source[i] === '*' && source[i + 1] === '/')) i++;
+        i = Math.min(source.length, i + 2);
+        push('comment', source.slice(start, i));
+        continue;
+      }
+
+      // strings: ', ", `
+      if (ch === "'" || ch === '"' || ch === '`') {
+        const quote = ch;
+        const start = i;
+        i++;
+        while (i < source.length) {
+          const c = source[i];
+          if (c === '\\') {
+            i += 2;
+            continue;
+          }
+          if (c === quote) {
+            i++;
+            break;
+          }
+          i++;
+        }
+        push('string', source.slice(start, i));
+        continue;
+      }
+
+      push('plain', ch);
+      i++;
+    }
+
+    const keywords = new Set([
+      'const',
+      'let',
+      'var',
+      'function',
+      'return',
+      'if',
+      'else',
+      'for',
+      'while',
+      'import',
+      'from',
+      'export',
+      'default',
+      'class',
+      'new',
+      'try',
+      'catch',
+      'throw',
+    ]);
+    const builtins = new Set(['console', 'Math', 'Date', 'JSON']);
+    const operators = ['===', '==', '=>', '&&', '||', '!=', '<=', '>=', '+', '-', '*', '/', '%', '=', '!', '<', '>'];
+
+    const colorizePlain = (plain: string) => {
+      let out = '';
+      let j = 0;
+
+      const startsWithAnyOp = (s: string, idx: number) => {
+        for (const op of operators) {
+          if (s.startsWith(op, idx)) return op;
+        }
+        return null;
+      };
+
+      while (j < plain.length) {
+        const c = plain[j];
+
+        // whitespace
+        if (c === ' ' || c === '\t' || c === '\n' || c === '\r') {
+          out += escapeHtml(c);
+          j++;
+          continue;
+        }
+
+        // number
+        if (c >= '0' && c <= '9') {
+          const start = j;
+          j++;
+          while (j < plain.length && ((plain[j] >= '0' && plain[j] <= '9') || plain[j] === '.')) j++;
+          const token = plain.slice(start, j);
+          out += `<span class="text-emerald-300">${escapeHtml(token)}</span>`;
+          continue;
+        }
+
+        // identifier
+        if (
+          (c >= 'A' && c <= 'Z') ||
+          (c >= 'a' && c <= 'z') ||
+          c === '_' ||
+          c === '$'
+        ) {
+          const start = j;
+          j++;
+          while (
+            j < plain.length &&
+            (/[A-Za-z0-9_$]/.test(plain[j]))
+          )
+            j++;
+          const token = plain.slice(start, j);
+          if (keywords.has(token)) {
+            out += `<span class="text-purple-300">${escapeHtml(token)}</span>`;
+          } else if (builtins.has(token)) {
+            out += `<span class="text-blue-300">${escapeHtml(token)}</span>`;
+          } else {
+            out += escapeHtml(token);
+          }
+          continue;
+        }
+
+        // operators
+        const op = startsWithAnyOp(plain, j);
+        if (op) {
+          out += `<span class="text-pink-300">${escapeHtml(op)}</span>`;
+          j += op.length;
+          continue;
+        }
+
+        // punctuation (leave default)
+        out += escapeHtml(c);
+        j++;
+      }
+
+      return out;
+    };
+
+    return segs
+      .map((s) => {
+        if (s.t === 'comment') return `<span class="text-neutral-500">${escapeHtml(s.v)}</span>`;
+        if (s.t === 'string') return `<span class="text-amber-300">${escapeHtml(s.v)}</span>`;
+        return colorizePlain(s.v);
+      })
+      .join('');
+  };
+
+  const displayedHtml = highlightJS(code);
+  const lines = code.split('\n').length;
 
   return (
     <section className="relative py-32 px-6">
@@ -478,27 +750,50 @@ function SyntaxHighlightedCodeEditor() {
               </p>
             </div>
 
-            {/* Code editor */}
+            {/* VS Code style editor */}
             <div className="relative p-8 bg-neutral-900">
               <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary-500/50 to-transparent" />
               
               <div className="flex gap-4">
                 {/* Line numbers */}
                 <div className="flex flex-col font-mono text-base leading-relaxed text-neutral-600 select-none pt-0.5">
-                  {code.split('\n').map((_, i) => (
+                  {Array.from({ length: lines }).map((_, i) => (
                     <div key={i} className="text-right w-8">{i + 1}</div>
                   ))}
                 </div>
                 
-                {/* Code textarea */}
-                <textarea
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  className="flex-1 bg-transparent text-neutral-300 outline-none resize-none font-mono text-base leading-relaxed caret-white selection:bg-blue-500/40"
-                  style={{ minHeight: '180px' }}
-                  spellCheck={false}
-                />
+                <div className="relative flex-1">
+                  {/* Highlight layer */}
+                  <pre
+                    aria-hidden
+                    className="pointer-events-none select-none font-mono text-base leading-relaxed whitespace-pre-wrap break-words text-neutral-300"
+                    dangerouslySetInnerHTML={{ __html: displayedHtml + '\n' }}
+                  />
+
+                  {/* Editable layer */}
+                  <textarea
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onSelect={(e) => setCursorPos((e.target as HTMLTextAreaElement).selectionStart ?? 0)}
+                    className="absolute inset-0 w-full h-full bg-transparent text-transparent caret-white outline-none resize-none font-mono text-base leading-relaxed selection:bg-blue-500/40"
+                    style={{ minHeight: '220px' }}
+                    spellCheck={false}
+                  />
+                </div>
+              </div>
+
+              {/* Status bar */}
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-[11px] text-neutral-500 font-mono">
+                <div className="flex items-center gap-3">
+                  <span className="px-2 py-1 rounded bg-white/5 border border-white/10">Ln {code.slice(0, cursorPos).split('\n').length}</span>
+                  <span className="px-2 py-1 rounded bg-white/5 border border-white/10">UTF-8</span>
+                  <span className="px-2 py-1 rounded bg-white/5 border border-white/10">JavaScript</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-400">●</span>
+                  <span>VS Code vibe</span>
+                </div>
               </div>
             </div>
 

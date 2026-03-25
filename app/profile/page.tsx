@@ -1,33 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase';
 import { 
   ArrowLeft, Edit3, Save, X, Trophy, Star, Flame, Crown, 
   Award, Target, Zap, Code2, GitBranch, Calendar, MapPin,
-  Link as LinkIcon, Twitter, Github, Linkedin, Globe,
+  Link as LinkIcon, Globe,
   TrendingUp, Users, Heart, Share2, Settings, Camera,
   CheckCircle2, Lock, Medal, Sparkles, Rocket, Brain,
   Coffee, Book, Terminal, Package
 } from 'lucide-react';
 
+type ProfileRow = {
+  id: string;
+  full_name: string | null;
+};
+
 export default function ProfilePage() {
   const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
+  const [loading, setLoading] = useState(true);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'achievements' | 'activity'>('overview');
   
-  // User data
+  const [profileRow, setProfileRow] = useState<ProfileRow | null>(null);
   const [profile, setProfile] = useState({
-    name: 'Alex Chen',
-    username: '@alexcodes',
-    bio: 'Full-stack developer | Competitive coder | Coffee enthusiast ☕ | Building the future one line at a time 🚀',
-    location: 'San Francisco, CA',
-    website: 'alexchen.dev',
-    twitter: 'alexcodes',
-    github: 'alexchen',
-    linkedin: 'alexchen',
-    joinedDate: 'January 2024',
+    name: '',
+    username: '',
+    bio: '',
+    location: '',
+    website: '',
+    twitter: '',
+    github: '',
+    linkedin: '',
+    joinedDate: '',
     rank: 'Diamond',
     level: 12,
     xp: 3840,
@@ -35,7 +45,86 @@ export default function ProfilePage() {
     streak: 7
   });
 
-  const [editedBio, setEditedBio] = useState(profile.bio);
+  const [editedName, setEditedName] = useState('');
+  const [editedUsername, setEditedUsername] = useState('');
+  const [editedBio, setEditedBio] = useState('');
+
+  useEffect(() => {
+    let mounted = true;
+
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (!mounted) return;
+
+      if (userError) {
+        setError(userError.message);
+        setLoading(false);
+        return;
+      }
+
+      const user = userData.user;
+      if (!user) {
+        router.push('/');
+        return;
+      }
+
+      const { data: row, error: rowError } = await supabase
+        .from('profiles')
+        // NOTE: a Supabase quickstart / egyes sémák nem tartalmaznak `username` oszlopot,
+        // ezért itt csak biztos oszlopokat kérünk le.
+        .select('id, full_name')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!mounted) return;
+
+      if (rowError) {
+        setError(rowError.message);
+        setLoading(false);
+        return;
+      }
+
+      // Fallbacks: ha valamiért nincs profiles sor (régi user), legalább ne omoljon össze az oldal.
+      const resolvedUsername =
+        (typeof user.user_metadata?.username === 'string' ? user.user_metadata.username : null) ||
+        (user.email ? user.email.split('@')[0] : 'user');
+
+      const resolvedName =
+        row?.full_name ||
+        (typeof user.user_metadata?.full_name === 'string' ? user.user_metadata.full_name : null) ||
+        (typeof user.user_metadata?.name === 'string' ? user.user_metadata.name : null) ||
+        resolvedUsername;
+
+      const resolvedBio =
+        (typeof user.user_metadata?.bio === 'string' ? user.user_metadata.bio : '') || '';
+
+      const joinedDate = user.created_at
+        ? new Date(user.created_at).toLocaleString(undefined, { month: 'long', year: 'numeric' })
+        : '';
+
+      setProfileRow(row ?? null);
+      setProfile((prev) => ({
+        ...prev,
+        name: resolvedName,
+        username: `@${resolvedUsername}`,
+        bio: resolvedBio,
+        joinedDate
+      }));
+
+      setEditedName(resolvedName);
+      setEditedUsername(resolvedUsername);
+      setEditedBio(resolvedBio);
+      setLoading(false);
+    };
+
+    void load();
+    return () => {
+      mounted = false;
+    };
+  }, [router, supabase]);
 
   // Stats
   const stats = [
@@ -143,9 +232,62 @@ export default function ProfilePage() {
     { name: 'Algorithms', level: 65, color: 'from-purple-500 to-pink-500' }
   ];
 
-  const handleSaveBio = () => {
-    setProfile({ ...profile, bio: editedBio });
-    setIsEditing(false);
+  const handleSaveProfile = async () => {
+    if (saveLoading) return;
+    setSaveLoading(true);
+    setError(null);
+
+    const username = editedUsername.trim().replace(/^@+/, '');
+    const full_name = editedName.trim();
+    const bio = editedBio.trim();
+
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      const user = userData.user;
+      if (!user) {
+        router.push('/');
+        return;
+      }
+
+      // profiles tábla: csak UPDATE engedett saját sorra (RLS). Ha nincs sor, ezt nem tudjuk itt létrehozni (INSERT tiltva a migrációban).
+      if (profileRow?.id) {
+        const { error: updateError, data: updated } = await supabase
+          .from('profiles')
+          .update({
+            full_name: full_name || null,
+          })
+          .eq('id', user.id)
+          .select('id, full_name')
+          .maybeSingle();
+
+        if (updateError) throw updateError;
+        if (updated) setProfileRow(updated);
+      }
+
+      // bio: user_metadata-be mentjük (mert a profiles sémában nincs bio oszlop)
+      const { error: metaError } = await supabase.auth.updateUser({
+        data: { bio, username },
+      });
+      if (metaError) throw metaError;
+
+      const appliedUsername =
+        username ||
+        (editedUsername.trim().replace(/^@+/, '') ?? 'user');
+      const appliedName = full_name || profileRow?.full_name || profile.name;
+
+      setProfile((prev) => ({
+        ...prev,
+        name: appliedName,
+        username: `@${appliedUsername}`,
+        bio,
+      }));
+      setIsEditing(false);
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to save profile');
+    } finally {
+      setSaveLoading(false);
+    }
   };
 
   const getRarityColor = (rarity: string) => {
@@ -167,6 +309,16 @@ export default function ProfilePage() {
     };
     return colors[rarity as keyof typeof colors] || colors.common;
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-xl font-bold text-neutral-300">
+          Loading profile...
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-900 via-neutral-950 to-black text-white relative overflow-hidden">
@@ -200,6 +352,13 @@ export default function ProfilePage() {
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-8">
+        {error && (
+          <div className="mb-6 bg-red-500/10 border border-red-400/20 text-red-200 rounded-2xl px-5 py-4">
+            <div className="font-bold mb-1">Profile error</div>
+            <div className="text-sm text-red-200/90">{error}</div>
+          </div>
+        )}
+
         {/* Profile Header Card */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="relative bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl p-8 mb-8">
           <div className="flex flex-col md:flex-row gap-8">
@@ -218,8 +377,27 @@ export default function ProfilePage() {
             <div className="flex-1">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h2 className="text-3xl font-black mb-1">{profile.name}</h2>
-                  <p className="text-neutral-400 text-lg mb-3">{profile.username}</p>
+                  {isEditing ? (
+                    <div className="space-y-3">
+                      <input
+                        value={editedName}
+                        onChange={(e) => setEditedName(e.target.value)}
+                        className="w-full max-w-md px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-purple-500/50"
+                        placeholder="Full name"
+                      />
+                      <input
+                        value={editedUsername}
+                        onChange={(e) => setEditedUsername(e.target.value)}
+                        className="w-full max-w-md px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-purple-500/50"
+                        placeholder="Username"
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <h2 className="text-3xl font-black mb-1">{profile.name || 'Your Profile'}</h2>
+                      <p className="text-neutral-400 text-lg mb-3">{profile.username || '@user'}</p>
+                    </>
+                  )}
                   
                   {/* Rank Badge */}
                   <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 rounded-xl">
@@ -244,11 +422,19 @@ export default function ProfilePage() {
                   <div>
                     <textarea value={editedBio} onChange={(e) => setEditedBio(e.target.value)} className="w-full p-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-purple-500/50 resize-none" rows={3} placeholder="Write your bio..." />
                     <div className="flex gap-2 mt-3">
-                      <button onClick={handleSaveBio} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold hover:shadow-lg transition-all">
+                      <button disabled={saveLoading} onClick={handleSaveProfile} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed">
                         <Save className="w-4 h-4" />
-                        Save
+                        {saveLoading ? 'Saving...' : 'Save'}
                       </button>
-                      <button onClick={() => { setIsEditing(false); setEditedBio(profile.bio); }} className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all">
+                      <button
+                        onClick={() => {
+                          setIsEditing(false);
+                          setEditedName(profile.name);
+                          setEditedUsername(profile.username.replace(/^@+/, ''));
+                          setEditedBio(profile.bio);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all"
+                      >
                         <X className="w-4 h-4" />
                         Cancel
                       </button>
@@ -279,17 +465,17 @@ export default function ProfilePage() {
               <div className="flex gap-3 mt-6">
                 {profile.twitter && (
                   <motion.a whileHover={{ scale: 1.1, y: -2 }} href={`https://twitter.com/${profile.twitter}`} target="_blank" className="w-10 h-10 bg-white/5 hover:bg-blue-500/20 border border-white/10 hover:border-blue-500/30 rounded-xl flex items-center justify-center transition-all">
-                    <Twitter className="w-4 h-4" />
+                    <LinkIcon className="w-4 h-4" />
                   </motion.a>
                 )}
                 {profile.github && (
                   <motion.a whileHover={{ scale: 1.1, y: -2 }} href={`https://github.com/${profile.github}`} target="_blank" className="w-10 h-10 bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/30 rounded-xl flex items-center justify-center transition-all">
-                    <Github className="w-4 h-4" />
+                    <LinkIcon className="w-4 h-4" />
                   </motion.a>
                 )}
                 {profile.linkedin && (
                   <motion.a whileHover={{ scale: 1.1, y: -2 }} href={`https://linkedin.com/in/${profile.linkedin}`} target="_blank" className="w-10 h-10 bg-white/5 hover:bg-blue-600/20 border border-white/10 hover:border-blue-600/30 rounded-xl flex items-center justify-center transition-all">
-                    <Linkedin className="w-4 h-4" />
+                    <LinkIcon className="w-4 h-4" />
                   </motion.a>
                 )}
               </div>
