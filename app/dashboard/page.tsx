@@ -36,6 +36,16 @@ export default function DashboardPage() {
     return () => window.removeEventListener('mousemove', handleMouse);
   }, []);
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkUser();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -46,6 +56,43 @@ export default function DashboardPage() {
     setLoading(false);
   };
 
+  const avatarOptions = useMemo(() => {
+    const maleSeeds = ['John', 'Michael', 'David', 'James', 'Robert', 'William', 'Richard', 'Joseph', 'Thomas', 'Charles', 'Daniel', 'Matthew', 'Anthony', 'Mark', 'Donald', 'Steven', 'Paul', 'Andrew', 'Joshua', 'Kenneth'];
+    const male = maleSeeds.map((seed, i) => ({ 
+      id: `male-${i + 1}`, 
+      url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`
+    }));
+    
+    const femaleSeeds = ['Sarah', 'Jessica', 'Emily', 'Ashley', 'Michelle', 'Amanda', 'Melissa', 'Deborah', 'Stephanie', 'Rebecca', 'Laura', 'Sharon', 'Cynthia', 'Kathleen', 'Amy', 'Angela', 'Shirley', 'Anna', 'Brenda', 'Pamela'];
+    const female = femaleSeeds.map((seed, i) => ({ 
+      id: `female-${i + 1}`, 
+      url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`
+    }));
+    
+    const robotSeeds = ['Felix', 'Aneka', 'Tigger', 'Buster', 'Midnight', 'Shadow', 'Nova', 'Spark', 'Bolt', 'Circuit', 'Pixel', 'Byte', 'Chip', 'Core', 'Data', 'Echo', 'Flux', 'Grid', 'Hex', 'Ion'];
+    const robot = robotSeeds.map((seed, i) => ({ 
+      id: `robot-${i + 1}`, 
+      url: `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`
+    }));
+    
+    const hackerSeeds = ['Neo', 'Trinity', 'Morpheus', 'Cipher', 'Tank', 'Dozer', 'Mouse', 'Apoc', 'Switch', 'Ghost', 'Niobe', 'Link', 'Zee', 'Seraph', 'Oracle', 'Keymaker', 'Architect', 'Merovingian', 'Persephone', 'Trainman'];
+    const hacker = hackerSeeds.map((seed, i) => ({ 
+      id: `hacker-${i + 1}`, 
+      url: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${seed}`
+    }));
+    
+    const geometricSeeds = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta', 'Iota', 'Kappa', 'Lambda', 'Mu', 'Nu', 'Xi', 'Omicron', 'Pi', 'Rho', 'Sigma', 'Tau', 'Omega'];
+    const geometric = geometricSeeds.map((seed, i) => ({ 
+      id: `geometric-${i + 1}`, 
+      url: `https://api.dicebear.com/7.x/identicon/svg?seed=${seed}`
+    }));
+    
+    return [...male, ...female, ...robot, ...hacker, ...geometric];
+  }, []);
+
+  const userAvatar = user?.user_metadata?.avatar || 'male-1';
+  const avatarUrl = avatarOptions.find(a => a.id === userAvatar)?.url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=John';
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/');
@@ -54,15 +101,6 @@ export default function DashboardPage() {
   const stats = { coins: 1250, xp: 3840, level: 12, challengesSolved: 47, streak: 7, rank: 'Gold' };
   const streakDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
   const streakStatus = [true, true, true, true, true, true, false];
-
-  type ContributionDay = {
-    date: string; // YYYY-MM-DD
-    value: number; // raw activity score
-    level: 0 | 1 | 2 | 3 | 4; // color bucket
-    hours: number;
-    projects: number;
-    tasks: number;
-  };
 
   const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 
@@ -75,7 +113,7 @@ export default function DashboardPage() {
 
   const startOfWeek = (d: Date, weekStartsOn: 0 | 1) => {
     const date = new Date(d);
-    const day = date.getDay(); // 0..6
+    const day = date.getDay();
     const diff = (day - weekStartsOn + 7) % 7;
     date.setDate(date.getDate() - diff);
     date.setHours(0, 0, 0, 0);
@@ -86,26 +124,23 @@ export default function DashboardPage() {
     d.toLocaleString(undefined, { month: 'short' });
 
   const generateContributionGrid = (days: number, weekStartsOn: 0 | 1) => {
-    // MOCK but deterministic-ish: stable distribution based on date number (no Math.random)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const start = new Date(today);
     start.setDate(start.getDate() - (days - 1));
 
-    // Align to week boundary so grid columns are full weeks
     const gridStart = startOfWeek(start, weekStartsOn);
     const gridEnd = new Date(today);
     const endOfThisWeek = startOfWeek(gridEnd, weekStartsOn);
     endOfThisWeek.setDate(endOfThisWeek.getDate() + 6);
 
-    const all: ContributionDay[] = [];
+    const all: { date: string; value: number; level: 0 | 1 | 2 | 3 | 4; hours: number; projects: number; tasks: number; }[] = [];
     for (let d = new Date(gridStart); d <= endOfThisWeek; d.setDate(d.getDate() + 1)) {
       const date = new Date(d);
       const iso = formatISODate(date);
 
-      // Deterministic pseudo-activity from date: makes UI look real but stable between renders
       const seed = (date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate()) % 97;
-      const base = (seed * 37) % 23; // 0..22
+      const base = (seed * 37) % 23;
       const weekendBoost = date.getDay() === 0 || date.getDay() === 6 ? 1.1 : 1;
       const value = Math.floor(base * weekendBoost);
 
@@ -129,28 +164,23 @@ export default function DashboardPage() {
 
     const withLevels = all.map((x) => ({ ...x, level: toLevel(x.value) }));
 
-    // Split into weeks (columns), each contains 7 days (rows)
-    const weeks: ContributionDay[][] = [];
+    const weeks: typeof withLevels[] = [];
     for (let i = 0; i < withLevels.length; i += 7) weeks.push(withLevels.slice(i, i + 7));
 
-    // Month labels on top: show month when first week containing a day from that month
     const monthLabels = weeks.map((week) => {
       const firstOfMonth = week.find((day) => day.date.endsWith('-01'));
       if (firstOfMonth) {
         const [y, m] = firstOfMonth.date.split('-').map(Number);
         return getMonthLabel(new Date(y, (m || 1) - 1, 1));
       }
-      // alternatively show label if month changes inside week
       const first = week[0];
       if (!first) return '';
       const [y, m] = first.date.split('-').map(Number);
       const label = getMonthLabel(new Date(y, (m || 1) - 1, 1));
-      // Only show when week includes first visible day in month
       const hasMonthChange = week.some((d) => d.date.slice(0, 7) !== first.date.slice(0, 7));
       return hasMonthChange ? label : '';
     });
 
-    // Stats: only count last N requested days (not padded grid)
     const cutoff = formatISODate(start);
     const lastNDays = withLevels.filter((d) => d.date >= cutoff && d.date <= formatISODate(today));
 
@@ -158,6 +188,8 @@ export default function DashboardPage() {
   };
 
   const contribution = useMemo(() => generateContributionGrid(98, 1), [isDark]);
+
+
 
   if (loading) {
     return (
@@ -207,20 +239,41 @@ export default function DashboardPage() {
     ]
   };
 
-  const leaderboard = [
-    { rank: 1, name: 'Sarah Chen', level: 'Lvl 15', xp: 4800, progress: 92, avatar: 'SC', color: 'from-pink-500 to-rose-500' },
-    { rank: 2, name: 'David Kim', level: 'Lvl 14', xp: 4200, progress: 78, avatar: 'DK', color: 'from-blue-500 to-cyan-500' },
-    { rank: 3, name: user?.user_metadata?.name || 'You', level: `Lvl ${stats.level}`, xp: stats.xp, progress: 68, avatar: user?.user_metadata?.name?.[0] || 'Y', color: 'from-primary-500 to-secondary-500', isMe: true },
-    { rank: 4, name: 'Maria Garcia', level: 'Lvl 12', xp: 3600, progress: 55, avatar: 'MG', color: 'from-purple-500 to-violet-500' },
-    { rank: 5, name: 'James Wilson', level: 'Lvl 11', xp: 3200, progress: 45, avatar: 'JW', color: 'from-orange-500 to-amber-500' }
+  // Mock leaderboard data with tiers
+  const getTier = (points: number) => {
+    if (points >= 8000) return { name: 'Challenger', color: 'from-red-500 to-orange-500', textColor: isDark ? 'text-red-400' : 'text-red-600' };
+    if (points >= 6000) return { name: 'Grandmaster', color: 'from-purple-500 to-pink-500', textColor: isDark ? 'text-purple-400' : 'text-purple-600' };
+    if (points >= 4500) return { name: 'Master', color: 'from-blue-500 to-cyan-500', textColor: isDark ? 'text-blue-400' : 'text-blue-600' };
+    if (points >= 3500) return { name: 'Diamond', color: 'from-cyan-500 to-teal-500', textColor: isDark ? 'text-cyan-400' : 'text-cyan-600' };
+    if (points >= 2500) return { name: 'Platinum', color: 'from-teal-500 to-emerald-500', textColor: isDark ? 'text-teal-400' : 'text-teal-600' };
+    if (points >= 1500) return { name: 'Gold', color: 'from-amber-500 to-yellow-500', textColor: isDark ? 'text-amber-400' : 'text-amber-600' };
+    if (points >= 800) return { name: 'Silver', color: 'from-slate-400 to-gray-400', textColor: isDark ? 'text-slate-400' : 'text-slate-600' };
+    return { name: 'Bronze', color: 'from-orange-700 to-amber-700', textColor: isDark ? 'text-orange-600' : 'text-orange-700' };
+  };
+
+  // Unsorted leaderboard data
+  const unsortedLeaderboard = [
+    { name: 'Sarah Chen', points: 8450, streak: 28, tasksCompleted: 145, avatar: 'SC', color: 'from-pink-500 to-rose-500', isMe: false },
+    { name: 'Alex Rivera', points: 7200, streak: 21, tasksCompleted: 132, avatar: 'AR', color: 'from-indigo-500 to-purple-500', isMe: false },
+    { name: 'Emma Zhang', points: 6800, streak: 19, tasksCompleted: 128, avatar: 'EZ', color: 'from-cyan-500 to-blue-500', isMe: false },
+    { name: user?.user_metadata?.name || 'You', points: stats.xp, streak: stats.streak, tasksCompleted: stats.challengesSolved, avatar: user?.user_metadata?.name?.[0] || 'Y', color: 'from-primary-500 to-secondary-500', isMe: true },
+    { name: 'David Kim', points: 4200, streak: 14, tasksCompleted: 98, avatar: 'DK', color: 'from-blue-500 to-cyan-500', isMe: false },
+    { name: 'Maria Garcia', points: 3600, streak: 12, tasksCompleted: 87, avatar: 'MG', color: 'from-purple-500 to-violet-500', isMe: false },
+    { name: 'James Wilson', points: 2800, streak: 9, tasksCompleted: 72, avatar: 'JW', color: 'from-teal-500 to-emerald-500', isMe: false },
+    { name: 'Lisa Anderson', points: 1950, streak: 7, tasksCompleted: 58, avatar: 'LA', color: 'from-amber-500 to-orange-500', isMe: false }
   ];
+
+  // Sort by points descending and assign ranks
+  const leaderboardData = unsortedLeaderboard
+    .sort((a, b) => b.points - a.points)
+    .map((user, index) => ({ ...user, rank: index + 1 }));
 
   const navItems = [
   { id: 'dashboard', icon: <Terminal className="w-4 h-4" />, label: 'Dashboard', path: '/dashboard' },
+  { id: 'leaderboard', icon: <Trophy className="w-4 h-4" />, label: 'Leaderboard', path: '/leaderboard' },
   { id: 'ranked', icon: <Swords className="w-4 h-4" />, label: 'Ranked', path: '/ranked' },
   { id: 'rewards', icon: <Gift className="w-4 h-4" />, label: 'Rewards', path: '/rewards' },
-  { id: 'ai-coach', icon: <Brain className="w-4 h-4" />, label: 'AI Coach', path: '/ai-coach' },
-  { id: 'leaderboard', icon: <Trophy className="w-4 h-4" />, label: 'Leaderboard', path: '/leaderboard' }
+  { id: 'ai-coach', icon: <Brain className="w-4 h-4" />, label: 'AI Coach', path: '/ai-coach' }
 ];
 
 const learningItems = [
@@ -336,7 +389,9 @@ const careerItems = [
             <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleLogout} className={`flex items-center gap-2 px-4 py-2 text-sm ${isDark ? 'text-neutral-400 hover:text-white hover:bg-neutral-800 hover:border-neutral-700' : 'text-neutral-600 hover:text-neutral-900 hover:bg-white hover:border-neutral-300'} rounded-xl transition-all border border-transparent`}>
               <LogOut className="w-4 h-4" />Logout
             </motion.button>
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-600 to-secondary-600 flex items-center justify-center font-bold text-sm cursor-pointer text-white">{user?.user_metadata?.name?.[0] || 'C'}</div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => router.push('/profile')} className="w-9 h-9 rounded-xl bg-neutral-800 overflow-hidden cursor-pointer border border-white/10">
+              <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+            </motion.div>
           </div>
         </div>
 
@@ -415,84 +470,145 @@ const careerItems = [
               </div>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className={`${isDark ? 'bg-neutral-900/80 border-neutral-800' : 'bg-white/90 border-neutral-200'} backdrop-blur-xl border rounded-2xl p-5`}>
-              <div className="flex items-center justify-between mb-4">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className={`${isDark ? 'bg-neutral-900/80 border-neutral-800' : 'bg-white/90 border-neutral-200'} backdrop-blur-xl border rounded-2xl p-6`}>
+              <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className={`text-sm font-black ${isDark ? 'text-white' : 'text-neutral-900'} mb-0.5`}>Activity Tracker</h3>
-                  <p className={`text-xs ${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>Last ~14 weeks</p>
+                  <h3 className={`text-base font-black ${isDark ? 'text-white' : 'text-neutral-900'} mb-1`}>Activity Tracker</h3>
+                  <p className={`text-xs ${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>Last 14 weeks of coding activity</p>
                 </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className={`${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>Less</span>
-                  <div className={`w-2.5 h-2.5 rounded-sm ${isDark ? 'bg-neutral-800/50' : 'bg-neutral-200'}`} />
-                  <div className={`w-2.5 h-2.5 rounded-sm ${getActivityColor(1)}`} />
-                  <div className={`w-2.5 h-2.5 rounded-sm ${getActivityColor(2)}`} />
-                  <div className={`w-2.5 h-2.5 rounded-sm ${getActivityColor(3)}`} />
-                  <div className={`w-2.5 h-2.5 rounded-sm ${getActivityColor(4)}`} />
-                  <span className={`${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>More</span>
+                <div className="flex items-center gap-2.5 text-xs">
+                  <span className={`${isDark ? 'text-neutral-500' : 'text-neutral-400'} font-medium`}>Less</span>
+                  <div className={`w-3 h-3 rounded-sm ${isDark ? 'bg-neutral-800/50' : 'bg-neutral-200'}`} />
+                  <div className={`w-3 h-3 rounded-sm ${getActivityColor(1)}`} />
+                  <div className={`w-3 h-3 rounded-sm ${getActivityColor(2)}`} />
+                  <div className={`w-3 h-3 rounded-sm ${getActivityColor(3)}`} />
+                  <div className={`w-3 h-3 rounded-sm ${getActivityColor(4)}`} />
+                  <span className={`${isDark ? 'text-neutral-500' : 'text-neutral-400'} font-medium`}>More</span>
                 </div>
               </div>
-              <div className="overflow-x-auto pb-1">
-                <div className="min-w-[720px]">
-                  {/* Month labels */}
-                  <div className="flex gap-0.5 mb-1 ml-8">
-                    {contribution.monthLabels.map((label, i) => (
-                      <div
-                        key={i}
-                        className={`text-[9px] ${isDark ? 'text-neutral-600' : 'text-neutral-400'} w-[16px] text-center`}
-                      >
-                        {label}
+              
+              <div className="grid grid-cols-[1fr,auto] gap-6">
+                <div className="flex flex-col gap-4">
+                  <div className="overflow-visible py-2">
+                    <div className="w-full">
+                      <div className="flex gap-2 mb-4 ml-14">
+                        {contribution.monthLabels.map((label, i) => (
+                          <div key={i} className={`text-xs font-bold ${isDark ? 'text-neutral-500' : 'text-neutral-400'} w-[32px] text-center`}>{label}</div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-
-                  <div className="flex gap-0.5">
-                    {/* Day labels */}
-                    <div className="flex flex-col gap-0.5 text-[9px] text-neutral-500 pr-1">
-                      <div className="h-[13px]" />
-                      <div className="h-[13px] flex items-center">Mon</div>
-                      <div className="h-[13px]" />
-                      <div className="h-[13px] flex items-center">Wed</div>
-                      <div className="h-[13px]" />
-                      <div className="h-[13px] flex items-center">Fri</div>
-                      <div className="h-[13px]" />
-                    </div>
-
-                    {/* Grid (columns=weeks, rows=days) */}
-                    <div className="flex gap-0.5">
-                      {contribution.weeks.map((week, weekIndex) => (
-                        <div key={weekIndex} className="flex flex-col gap-0.5">
-                          {week.map((day, dayIndex) => (
-                            <motion.div
-                              key={dayIndex}
-                              whileHover={{ scale: 1.35 }}
-                              className={`w-[16px] h-[16px] rounded-[4px] ${getActivityColor(day.level)} cursor-pointer relative group transition-all`}
-                              title={`${day.date}: ${day.tasks} tasks • ${day.hours}h`}
-                            >
-                              <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-2 ${isDark ? 'bg-neutral-800' : 'bg-neutral-900'} text-white text-[10px] rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity shadow-xl`}>
-                                <div className="font-bold">{day.date}</div>
-                                <div className="text-neutral-200">{day.tasks} tasks • {day.projects} projects</div>
-                                <div className="text-neutral-400">{day.hours}h focused time</div>
-                              </div>
-                            </motion.div>
+                      <div className="flex gap-2">
+                        <div className="flex flex-col gap-2 text-xs font-semibold text-neutral-500 pr-2">
+                          <div className="h-[32px]" />
+                          <div className="h-[32px] flex items-center">Mon</div>
+                          <div className="h-[32px]" />
+                          <div className="h-[32px] flex items-center">Wed</div>
+                          <div className="h-[32px]" />
+                          <div className="h-[32px] flex items-center">Fri</div>
+                          <div className="h-[32px]" />
+                        </div>
+                        <div className="flex gap-2">
+                          {contribution.weeks.map((week, weekIndex) => (
+                            <div key={weekIndex} className="flex flex-col gap-2">
+                              {week.map((day, dayIndex) => {
+                                const showBelow = dayIndex < 3;
+                                const showRight = weekIndex < 3;
+                                return (
+                                <motion.div
+                                  key={dayIndex}
+                                  whileHover={{ scale: 1.12, zIndex: 100 }}
+                                  className={`w-[32px] h-[32px] rounded-lg ${getActivityColor(day.level)} cursor-pointer relative group transition-all shadow-sm hover:shadow-md`}
+                                >
+                                  <div className={`absolute ${showBelow ? 'top-full mt-3' : 'bottom-full mb-3'} ${showRight ? 'left-full ml-3' : 'left-1/2 -translate-x-1/2'} px-3 py-2.5 ${isDark ? 'bg-neutral-800/95 border border-neutral-700/50' : 'bg-white border border-neutral-200'} ${isDark ? 'text-white' : 'text-neutral-900'} text-xs rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-[100] transition-all duration-200 shadow-2xl backdrop-blur-sm`}>
+                                    <div className={`font-bold text-sm mb-1 ${isDark ? 'text-white' : 'text-neutral-900'}`}>{day.date}</div>
+                                    <div className={`${isDark ? 'text-neutral-300' : 'text-neutral-600'} text-xs mb-0.5`}>{day.tasks} tasks • {day.projects} projects</div>
+                                    <div className={`${isDark ? 'text-neutral-400' : 'text-neutral-500'} text-xs`}>{day.hours}h focused time</div>
+                                    <div className={`absolute ${showBelow ? 'bottom-full -mb-px' : 'top-full -mt-px'} ${showRight ? 'right-full -mr-px top-1/2 -translate-y-1/2' : 'left-1/2 -translate-x-1/2'} w-2 h-2 rotate-45 ${isDark ? 'bg-neutral-800/95 border-t border-l border-neutral-700/50' : 'bg-white border-t border-l border-neutral-200'}`} />
+                                  </div>
+                                </motion.div>
+                                );
+                              })}
+                            </div>
                           ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className={`${isDark ? 'bg-neutral-800/30' : 'bg-neutral-100'} rounded-xl p-4`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className={`text-xs font-bold ${isDark ? 'text-neutral-400' : 'text-neutral-500'} uppercase tracking-wide`}>Last 7 Days</h4>
+                      <div className={`text-xs ${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>27.0h total</div>
+                    </div>
+                    <div className="flex items-end gap-2" style={{ height: '100px' }}>
+                      {[
+                        { day: 'Mon', h: '2.1h', height: 40 },
+                        { day: 'Tue', h: '4.3h', height: 65 },
+                        { day: 'Wed', h: '1.2h', height: 20 },
+                        { day: 'Thu', h: '5.0h', height: 78 },
+                        { day: 'Fri', h: '3.8h', height: 58 },
+                        { day: 'Sat', h: '6.4h', height: 100 },
+                        { day: 'Sun', h: '4.2h', height: 64 },
+                      ].map((bar) => (
+                        <div key={bar.day} className="flex-1 flex flex-col items-center gap-2 group">
+                          <div className="relative w-full">
+                            <div className={`w-full rounded-t transition-all cursor-pointer ${isDark ? 'bg-gradient-to-t from-primary-600 to-primary-400 hover:from-primary-500 hover:to-primary-300' : 'bg-gradient-to-t from-primary-500 to-primary-300 hover:from-primary-600 hover:to-primary-400'}`} style={{ height: `${bar.height}px`, minHeight: `${bar.height}px` }} />
+                            <div className={`absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-neutral-800/95 border border-neutral-700/50 text-white' : 'bg-white border border-neutral-200 text-neutral-900'} text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap`}>{bar.h}</div>
+                          </div>
+                          <span className={`text-[10px] font-bold ${isDark ? 'text-neutral-400' : 'text-neutral-500'}`}>{bar.day}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
+                
+                <div className={`w-40 flex flex-col gap-3 ${isDark ? 'border-l border-neutral-800/50' : 'border-l border-neutral-300/50'} pl-6`}>
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Flame className={`w-4 h-4 ${isDark ? 'text-orange-400' : 'text-orange-500'}`} />
+                      <span className={`text-xs font-semibold ${isDark ? 'text-neutral-400' : 'text-neutral-500'}`}>Current Streak</span>
+                    </div>
+                    <div className={`text-3xl font-black ${isDark ? 'text-orange-400' : 'text-orange-500'} font-mono`}>{stats.streak}</div>
+                    <div className={`text-xs ${isDark ? 'text-neutral-500' : 'text-neutral-400'} mt-1`}>days in a row</div>
+                  </div>
+                  <div className={`pt-3 border-t ${isDark ? 'border-neutral-800/50' : 'border-neutral-300/50'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Crown className={`w-4 h-4 ${isDark ? 'text-amber-400' : 'text-amber-500'}`} />
+                      <span className={`text-xs font-semibold ${isDark ? 'text-neutral-400' : 'text-neutral-500'}`}>Best Streak</span>
+                    </div>
+                    <div className={`text-2xl font-black ${isDark ? 'text-amber-400' : 'text-amber-500'} font-mono`}>14</div>
+                    <div className={`text-xs ${isDark ? 'text-neutral-500' : 'text-neutral-400'} mt-1`}>all-time record</div>
+                  </div>
+                  <div className={`pt-3 border-t ${isDark ? 'border-neutral-800/50' : 'border-neutral-300/50'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Calendar className={`w-4 h-4 ${isDark ? 'text-primary-400' : 'text-primary-500'}`} />
+                      <span className={`text-xs font-semibold ${isDark ? 'text-neutral-400' : 'text-neutral-500'}`}>Active Days</span>
+                    </div>
+                    <div className={`text-2xl font-black ${isDark ? 'text-primary-400' : 'text-primary-500'} font-mono`}>{contribution.lastNDays.filter(d => d.value > 0).length}</div>
+                    <div className={`text-xs ${isDark ? 'text-neutral-500' : 'text-neutral-400'} mt-1`}>out of {contribution.lastNDays.length}</div>
+                  </div>
+                  <div className={`pt-3 border-t ${isDark ? 'border-neutral-800/50' : 'border-neutral-300/50'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className={`w-4 h-4 ${isDark ? 'text-green-400' : 'text-green-500'}`} />
+                      <span className={`text-xs font-semibold ${isDark ? 'text-neutral-400' : 'text-neutral-500'}`}>Completion</span>
+                    </div>
+                    <div className={`text-2xl font-black ${isDark ? 'text-green-400' : 'text-green-500'} font-mono`}>{Math.round((contribution.lastNDays.filter(d => d.value > 0).length / contribution.lastNDays.length) * 100)}%</div>
+                    <div className={`text-xs ${isDark ? 'text-neutral-500' : 'text-neutral-400'} mt-1`}>activity rate</div>
+                  </div>
+                </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-neutral-800/50">
+              
+              <div className={`grid grid-cols-3 gap-3 mt-6 pt-5 border-t ${isDark ? 'border-neutral-800/50' : 'border-neutral-300/50'}`}>
                 <div className="text-center">
-                  <div className={`text-xs font-bold ${isDark ? 'text-primary-400' : 'text-primary-600'} mb-0.5`}>{contribution.lastNDays.reduce((sum, day) => sum + day.hours, 0).toFixed(0)}h</div>
-                  <div className={`text-[10px] ${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>Total Time</div>
+                  <div className={`text-base font-black ${isDark ? 'text-primary-400' : 'text-primary-600'} mb-1 font-mono`}>{contribution.lastNDays.reduce((sum, day) => sum + day.hours, 0).toFixed(0)}h</div>
+                  <div className={`text-xs ${isDark ? 'text-neutral-500' : 'text-neutral-400'} font-medium`}>Total Time</div>
                 </div>
                 <div className="text-center">
-                  <div className={`text-xs font-bold ${isDark ? 'text-secondary-400' : 'text-secondary-600'} mb-0.5`}>{contribution.lastNDays.reduce((sum, day) => sum + day.projects, 0)}</div>
-                  <div className={`text-[10px] ${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>Projects</div>
+                  <div className={`text-base font-black ${isDark ? 'text-secondary-400' : 'text-secondary-600'} mb-1 font-mono`}>{contribution.lastNDays.reduce((sum, day) => sum + day.projects, 0)}</div>
+                  <div className={`text-xs ${isDark ? 'text-neutral-500' : 'text-neutral-400'} font-medium`}>Projects</div>
                 </div>
                 <div className="text-center">
-                  <div className={`text-xs font-bold ${isDark ? 'text-accent-400' : 'text-accent-600'} mb-0.5`}>{contribution.lastNDays.reduce((sum, day) => sum + day.tasks, 0)}</div>
-                  <div className={`text-[10px] ${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>Tasks Done</div>
+                  <div className={`text-base font-black ${isDark ? 'text-accent-400' : 'text-accent-600'} mb-1 font-mono`}>{contribution.lastNDays.reduce((sum, day) => sum + day.tasks, 0)}</div>
+                  <div className={`text-xs ${isDark ? 'text-neutral-500' : 'text-neutral-400'} font-medium`}>Tasks Done</div>
                 </div>
               </div>
             </motion.div>
@@ -502,24 +618,40 @@ const careerItems = [
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className={`text-base font-black ${isDark ? 'text-white' : 'text-neutral-900'} mb-1`}>Global Leaderboard</h3>
-                <p className={`text-xs ${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>Top coders this week</p>
+                <p className={`text-xs ${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>Top coders this month</p>
               </div>
-              <motion.button whileHover={{ scale: 1.05 }} className={`flex items-center gap-2 ${isDark ? 'text-primary-400 hover:text-primary-300' : 'text-primary-600 hover:text-primary-700'} font-bold text-sm`}>View All<ArrowRight className="w-4 h-4" /></motion.button>
+              <motion.button whileHover={{ scale: 1.05 }} onClick={() => router.push('/leaderboard')} className={`flex items-center gap-2 ${isDark ? 'text-primary-400 hover:text-primary-300' : 'text-primary-600 hover:text-primary-700'} font-bold text-sm`}>
+                View All <ArrowRight className="w-4 h-4" />
+              </motion.button>
             </div>
+            
             <div className="space-y-2">
-              {leaderboard.map((user) => (
-                <motion.div key={user.rank} whileHover={{ x: 4 }} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${user.isMe ? `${isDark ? 'bg-primary-600/10 border-primary-600/25' : 'bg-primary-100/50 border-primary-200'}` : `${isDark ? 'bg-neutral-800/50 border-neutral-700/50 hover:border-neutral-600' : 'bg-neutral-50 border-neutral-200 hover:border-neutral-300'}`}`}>
-                  <div className={`w-7 text-center font-black font-mono flex-shrink-0 ${user.rank === 1 ? 'text-amber-500' : user.rank === 2 ? 'text-slate-400' : user.rank === 3 ? 'text-amber-700' : `${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}`}>{user.rank}</div>
-                  <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${user.color} flex items-center justify-center font-bold text-xs flex-shrink-0 text-white`}>{user.avatar}</div>
+              {leaderboardData.slice(0, 5).map((user) => (
+                <motion.div
+                  key={user.rank}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: user.rank * 0.05 }}
+                  whileHover={{ x: 4 }}
+                  className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                    user.isMe
+                      ? `${isDark ? 'bg-primary-600/10 border-primary-600/25' : 'bg-primary-100/50 border-primary-200'}`
+                      : `${isDark ? 'bg-neutral-800/50 border-neutral-700/50 hover:border-neutral-600' : 'bg-neutral-50 border-neutral-200 hover:border-neutral-300'}`
+                  }`}
+                >
+                  <div className={`w-8 text-center font-black font-mono text-lg flex-shrink-0 ${
+                    user.rank === 1 ? 'text-amber-500' : user.rank === 2 ? 'text-slate-400' : user.rank === 3 ? 'text-orange-600' : `${isDark ? 'text-neutral-500' : 'text-neutral-400'}`
+                  }`}>
+                    {user.rank}
+                  </div>
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${user.color} flex items-center justify-center font-bold text-sm flex-shrink-0 text-white shadow-lg`}>
+                    {user.avatar}
+                  </div>
                   <div className="flex-1">
                     <div className={`font-bold text-sm ${isDark ? 'text-white' : 'text-neutral-900'}`}>{user.name}</div>
-                    <div className={`text-xs ${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>{user.level}</div>
                   </div>
-                  <div className={`text-sm font-black ${isDark ? 'text-primary-400' : 'text-primary-600'} font-mono`}>{user.xp.toLocaleString()} XP</div>
-                  <div className="w-20 flex-shrink-0">
-                    <div className={`h-1 ${isDark ? 'bg-neutral-800' : 'bg-neutral-200'} rounded-full overflow-hidden`}>
-                      <div className="h-full bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full" style={{ width: `${user.progress}%` }} />
-                    </div>
+                  <div className={`text-base font-black ${isDark ? 'text-primary-400' : 'text-primary-600'} font-mono`}>
+                    {user.points.toLocaleString()}
                   </div>
                 </motion.div>
               ))}
