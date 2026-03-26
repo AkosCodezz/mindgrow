@@ -5,7 +5,6 @@
 @tailwind utilities;
 
 :root {
-  /* RGB triplets so Tailwind can do alpha: rgb(var(--cr-*) / <alpha-value>) */
   --cr-primary: 107 142 35;
   --cr-secondary: 0 119 190;
   --cr-accent: 255 107 107;
@@ -26,6 +25,48 @@
   }
 }
 
+@layer components {
+  /* ── Hover interaction utilities ─────────────────────────────────────────── */
+  /* Card-level hover: subtle lift + brightness + shadow */
+  .hover-card {
+    transition: transform 0.2s cubic-bezier(0.4,0,0.2,1),
+                box-shadow 0.2s cubic-bezier(0.4,0,0.2,1),
+                filter 0.2s cubic-bezier(0.4,0,0.2,1);
+  }
+  .hover-card:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 8px 24px -6px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.04);
+    filter: brightness(1.03);
+  }
+
+  /* Row-level hover: gentle brightness + left shift hint */
+  .hover-row {
+    transition: transform 0.15s cubic-bezier(0.4,0,0.2,1),
+                box-shadow 0.15s cubic-bezier(0.4,0,0.2,1),
+                filter 0.15s cubic-bezier(0.4,0,0.2,1),
+                background-color 0.15s cubic-bezier(0.4,0,0.2,1);
+  }
+  .hover-row:hover {
+    filter: brightness(1.04);
+    box-shadow: 0 2px 8px -2px rgba(0,0,0,0.08);
+  }
+
+  /* Button-level hover: micro-scale + brightness pop */
+  .hover-btn {
+    transition: transform 0.15s cubic-bezier(0.4,0,0.2,1),
+                box-shadow 0.15s cubic-bezier(0.4,0,0.2,1),
+                filter 0.15s cubic-bezier(0.4,0,0.2,1);
+  }
+  .hover-btn:hover {
+    transform: scale(1.02);
+    filter: brightness(1.08);
+    box-shadow: 0 4px 12px -2px rgba(0,0,0,0.12);
+  }
+  .hover-btn:active {
+    transform: scale(0.98);
+  }
+}
+
 @layer utilities {
   .animation-delay-2000 {
     animation-delay: 2s;
@@ -39,7 +80,6 @@
     text-wrap: balance;
   }
 
-  /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 10px;
   }
@@ -58,69 +98,41 @@
   }
 }
 
-/* Organic blob animations */
 @keyframes blob {
-  0% {
-    transform: translate(0px, 0px) scale(1) rotate(0deg);
-  }
-  33% {
-    transform: translate(30px, -50px) scale(1.1) rotate(120deg);
-  }
-  66% {
-    transform: translate(-20px, 20px) scale(0.9) rotate(240deg);
-  }
-  100% {
-    transform: translate(0px, 0px) scale(1) rotate(360deg);
-  }
+  0% { transform: translate(0px, 0px) scale(1) rotate(0deg); }
+  33% { transform: translate(30px, -50px) scale(1.1) rotate(120deg); }
+  66% { transform: translate(-20px, 20px) scale(0.9) rotate(240deg); }
+  100% { transform: translate(0px, 0px) scale(1) rotate(360deg); }
 }
 
-/* Liquid gradient animation */
 @keyframes gradient-shift {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
-/* Floating animation */
 @keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-20px);
-  }
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
 }
 
-/* Pulse glow animation */
 @keyframes pulse-glow {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
-/* Selection styling */
 ::selection {
   background: color-mix(in srgb, rgb(var(--cr-primary)) 30%, transparent);
   color: rgb(var(--cr-fg));
 }
 
-/* Focus visible */
 *:focus-visible {
   @apply outline-none ring-2 ring-primary-500 ring-offset-2 ring-offset-neutral-50;
 }
 
-/* Smooth transitions for all interactive elements */
 button, a, input, textarea, select {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Gradient text utilities */
 .gradient-text {
   background-image: linear-gradient(to right, rgb(var(--cr-primary)), rgb(var(--cr-secondary)), rgb(var(--cr-accent)));
   -webkit-background-clip: text;
@@ -128,27 +140,16 @@ button, a, input, textarea, select {
   color: transparent;
 }
 
-/* Liquid gradient background */
 .liquid-gradient {
   background: linear-gradient(-45deg, rgb(var(--cr-primary)), rgb(var(--cr-secondary)), rgb(var(--cr-accent)), rgb(var(--cr-secondary)));
   background-size: 400% 400%;
   animation: gradient-shift 15s ease infinite;
 }
 
-/* Glass morphism utility */
 .glass {
   @apply bg-white/60 backdrop-blur-md border border-neutral-200/50;
 }
 
-/* Organic shapes */
-.organic-shape-1 {
-  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-}
-
-.organic-shape-2 {
-  border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-}
-
-.organic-shape-3 {
-  border-radius: 40% 60% 60% 40% / 60% 40% 60% 40%;
-}
+.organic-shape-1 { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+.organic-shape-2 { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; }
+.organic-shape-3 { border-radius: 40% 60% 60% 40% / 60% 40% 60% 40%; }
