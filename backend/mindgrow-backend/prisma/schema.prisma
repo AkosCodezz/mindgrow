@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── New CodeRift tables (managed by Prisma) ───
+
+model Journal {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  date      DateTime @default(now())
+  content   String
+  mood      Mood     @default(NEUTRAL)
+  tags      String[]
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("journals")
+}
+
+enum Mood {
+  HAPPY
+  GOOD
+  NEUTRAL
+  SAD
+  ANGRY
+}
+
+model Goal {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  title       String
+  description String?
+  deadline    DateTime?
+  completed   Boolean   @default(false)
+  progress    Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("goals")
+}
+
+model Habit {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  title       String
+  description String?
+  streak      Int       @default(0)
+  lastDone    DateTime? @map("last_done")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("habits")
+}
+
+model Course {
+  id          String       @id @default(cuid())
+  title       String
+  description String
+  duration    Int
+  enrollments Enrollment[]
+
+  @@map("courses")
+}
+
+model Enrollment {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  courseId    String   @map("course_id")
+  progress   Int      @default(0)
+  completed  Boolean  @default(false)
+  enrolledAt DateTime @default(now()) @map("enrolled_at")
+  course     Course   @relation(fields: [courseId], references: [id])
+
+  @@map("enrollments")
+}
