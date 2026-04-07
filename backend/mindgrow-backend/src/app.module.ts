@@ -7,6 +7,8 @@ import { JournalsModule } from './modules/journals/journals.module';
 import { GoalsModule } from './modules/goals/goals.module';
 import { HabitsModule } from './modules/habits/habits.module';
 import { CoursesModule } from './modules/courses/courses.module';
+import { StatsModule } from './modules/stats/stats.module';
+import { ProgressModule } from './modules/progress/progress.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { CoursesModule } from './modules/courses/courses.module';
     GoalsModule,
     HabitsModule,
     CoursesModule,
+    StatsModule,
+    ProgressModule,
   ],
 })
 export class AppModule {}

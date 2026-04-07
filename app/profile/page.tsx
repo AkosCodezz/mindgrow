@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
+import { statsApi } from '@/lib/api';
 import { useTheme } from '@/components/ThemeProvider';
 import { 
   ArrowLeft, Edit3, Save, X, Trophy, Star, Flame, Crown, 
@@ -40,11 +41,11 @@ export default function ProfilePage() {
     github: '',
     linkedin: '',
     joinedDate: '',
-    rank: 'Diamond',
-    level: 12,
-    xp: 3840,
-    coins: 1250,
-    streak: 7
+    rank: 'Bronze',
+    level: 1,
+    xp: 0,
+    coins: 0,
+    streak: 0
   });
 
   const [editedName, setEditedName] = useState('');
@@ -150,12 +151,24 @@ export default function ProfilePage() {
 
       setProfileRow(row ?? null);
       setSelectedAvatar(resolvedAvatar);
+
+      // Fetch gamification stats from backend
+      let backendStats = { rank: 'Bronze', level: 1, xp: 0, coins: 0, streak: 0 };
+      try {
+        backendStats = await statsApi.get();
+      } catch (e) { console.error('Stats fetch failed:', e); }
+
       setProfile((prev) => ({
         ...prev,
         name: resolvedName,
         username: `@${resolvedUsername}`,
         bio: resolvedBio,
-        joinedDate
+        joinedDate,
+        rank: backendStats.rank || 'Bronze',
+        level: backendStats.level || 1,
+        xp: backendStats.xp || 0,
+        coins: backendStats.coins || 0,
+        streak: backendStats.streak || 0,
       }));
 
       setEditedName(resolvedName);
@@ -171,10 +184,10 @@ export default function ProfilePage() {
   }, [router, supabase]);
 
   const stats = [
-    { label: 'Total XP', value: '3,840', icon: <Zap className="w-5 h-5" />, color: 'from-yellow-500 to-orange-500' },
-    { label: 'Challenges Solved', value: '47', icon: <Target className="w-5 h-5" />, color: 'from-blue-500 to-cyan-500' },
-    { label: 'Day Streak', value: '7', icon: <Flame className="w-5 h-5" />, color: 'from-red-500 to-orange-500' },
-    { label: 'Rank', value: 'Diamond', icon: <Crown className="w-5 h-5" />, color: 'from-purple-500 to-pink-500' }
+    { label: 'Total XP', value: profile.xp.toLocaleString(), icon: <Zap className="w-5 h-5" />, color: 'from-yellow-500 to-orange-500' },
+    { label: 'Level', value: profile.level.toString(), icon: <Target className="w-5 h-5" />, color: 'from-blue-500 to-cyan-500' },
+    { label: 'Day Streak', value: profile.streak.toString(), icon: <Flame className="w-5 h-5" />, color: 'from-red-500 to-orange-500' },
+    { label: 'Rank', value: profile.rank, icon: <Crown className="w-5 h-5" />, color: 'from-purple-500 to-pink-500' }
   ];
 
   const achievements = [

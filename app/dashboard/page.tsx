@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { createClient } from '@/lib/supabase';
+import { statsApi } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { 
   Trophy, Zap, Target, Flame, LogOut, Code2, Crown, Star, 
@@ -18,6 +19,8 @@ export default function DashboardPage() {
   const [activeNav, setActiveNav] = useState('dashboard');
   const [activeCard, setActiveCard] = useState<'project' | 'challenge' | 'path'>('project');
   const [isDark, setIsDark] = useState(true);
+  const [stats, setStats] = useState({ coins: 0, xp: 0, level: 1, challengesSolved: 0, streak: 0, bestStreak: 0, rank: 'Bronze' });
+  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const router = useRouter();
   const supabase = createClient();
 
@@ -41,8 +44,29 @@ export default function DashboardPage() {
 
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push('/'); } else { setUser(user); }
+    if (!user) { router.push('/'); return setLoading(false); }
+    setUser(user);
     setLoading(false);
+    // Fetch stats from backend
+    try {
+      const [s, lb] = await Promise.all([
+        statsApi.get(),
+        statsApi.getLeaderboard(8),
+      ]);
+      setStats(s);
+      // Update streak on page load
+      statsApi.updateStreak().then(updated => setStats(updated)).catch(() => {});
+      // Map leaderboard
+      const mapped = lb.map((u: any) => ({
+        ...u,
+        points: u.xp,
+        tasksCompleted: u.challengesSolved,
+        avatar: u.name?.[0] || '?',
+        color: u.userId === user.id ? 'from-primary-500 to-secondary-500' : ['from-pink-500 to-rose-500','from-indigo-500 to-purple-500','from-cyan-500 to-blue-500','from-blue-500 to-cyan-500','from-purple-500 to-violet-500','from-teal-500 to-emerald-500','from-amber-500 to-orange-500'][u.rank % 7],
+        isMe: u.userId === user.id,
+      }));
+      setLeaderboardData(mapped);
+    } catch (e) { console.error('Stats fetch failed:', e); }
   };
 
   const avatarOptions = useMemo(() => {
@@ -60,9 +84,23 @@ export default function DashboardPage() {
   const avatarUrl = avatarOptions.find(a => a.id === userAvatar)?.url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=John';
   const handleLogout = async () => { await supabase.auth.signOut(); router.push('/'); };
 
-  const stats = { coins: 1250, xp: 3840, level: 12, challengesSolved: 47, streak: 7, rank: 'Gold' };
-  const streakDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-  const streakStatus = [true, true, true, true, true, true, false];
+  // stats loaded from backend via useEffect
+  // Build streak days based on actual data - show current week with real streak
+  const getWeekDays = () => {
+    const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    const today = new Date();
+    const dayOfWeek = (today.getDay() + 6) % 7; // Monday = 0
+    const streak = stats.streak || 0;
+    const status = days.map((_, i) => {
+      if (i > dayOfWeek) return false; // Future days
+      if (i === dayOfWeek) return streak >= 1; // Today
+      // Past days: colored if within streak range
+      const daysAgo = dayOfWeek - i;
+      return daysAgo < streak;
+    });
+    return { days, status };
+  };
+  const { days: streakDays, status: streakStatus } = getWeekDays();
   const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
   const formatISODate = (d: Date) => { const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; };
   const startOfWeek = (d: Date, ws: 0|1) => { const date=new Date(d), day=date.getDay(), diff=(day-ws+7)%7; date.setDate(date.getDate()-diff); date.setHours(0,0,0,0); return date; };
@@ -105,17 +143,7 @@ export default function DashboardPage() {
   const currentChallenge = { title:'Array Manipulation Master', tag:'DAILY CHALLENGE', description:'Solve 3 medium-level array problems in 30 minutes', progress:66, tasks:[{id:1,text:'Two Sum Problem',done:true,xp:50},{id:2,text:'Rotate Array',done:true,xp:75},{id:3,text:'Find Duplicates',done:false,xp:100}] };
   const learningPath = { title:'Full-Stack Web Developer', tag:'LEARNING PATH', description:'Master frontend, backend, and deployment skills', progress:45, tasks:[{id:1,text:'React Fundamentals',done:true,xp:300},{id:2,text:'Node.js & Express',done:true,xp:350},{id:3,text:'Database Design',done:false,xp:400},{id:4,text:'Cloud Deployment',done:false,xp:450}] };
 
-  const unsortedLeaderboard = [
-    {name:'Sarah Chen',points:8450,streak:28,tasksCompleted:145,avatar:'SC',color:'from-pink-500 to-rose-500',isMe:false},
-    {name:'Alex Rivera',points:7200,streak:21,tasksCompleted:132,avatar:'AR',color:'from-indigo-500 to-purple-500',isMe:false},
-    {name:'Emma Zhang',points:6800,streak:19,tasksCompleted:128,avatar:'EZ',color:'from-cyan-500 to-blue-500',isMe:false},
-    {name:user?.user_metadata?.name||'You',points:stats.xp,streak:stats.streak,tasksCompleted:stats.challengesSolved,avatar:user?.user_metadata?.name?.[0]||'Y',color:'from-primary-500 to-secondary-500',isMe:true},
-    {name:'David Kim',points:4200,streak:14,tasksCompleted:98,avatar:'DK',color:'from-blue-500 to-cyan-500',isMe:false},
-    {name:'Maria Garcia',points:3600,streak:12,tasksCompleted:87,avatar:'MG',color:'from-purple-500 to-violet-500',isMe:false},
-    {name:'James Wilson',points:2800,streak:9,tasksCompleted:72,avatar:'JW',color:'from-teal-500 to-emerald-500',isMe:false},
-    {name:'Lisa Anderson',points:1950,streak:7,tasksCompleted:58,avatar:'LA',color:'from-amber-500 to-orange-500',isMe:false},
-  ];
-  const leaderboardData = unsortedLeaderboard.sort((a,b)=>b.points-a.points).map((u,i)=>({...u,rank:i+1}));
+  // leaderboardData loaded from backend via useEffect
 
   const navItems = [
     {id:'dashboard',icon:<Terminal className="w-4 h-4"/>,label:'Dashboard',path:'/dashboard'},
@@ -187,7 +215,7 @@ export default function DashboardPage() {
             <div className={`text-[10px] font-bold ${isDark?'text-amber-500/70':'text-amber-600/80'} uppercase tracking-widest mt-1`}>Day Streak 🔥</div>
             <div className="flex gap-1 justify-center mt-3">
               {streakDays.map((day,i)=>(
-                <div key={i} className={`w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-bold transition-all ${streakStatus[i]?'bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/40':i===stats.streak?`${isDark?'bg-amber-500/20':'bg-amber-400/30'} border border-amber-500 text-amber-500`:`${isDark?'bg-neutral-800 text-neutral-600':'bg-neutral-200 text-neutral-400'}`}`}>{day}</div>
+                <div key={i} className={`w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-bold transition-all ${streakStatus[i]?'bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/40':`${isDark?'bg-neutral-800 text-neutral-600':'bg-neutral-200 text-neutral-400'}`}`}>{day}</div>
               ))}
             </div>
           </div>
@@ -200,12 +228,12 @@ export default function DashboardPage() {
         <div className={`p-4 border-t ${isDark?'border-neutral-800/50':'border-neutral-200/50'}`}>
           <div className="flex items-center justify-between mb-2">
             <span className={`text-[11px] font-bold ${isDark?'text-neutral-500':'text-neutral-400'} uppercase tracking-wide`}>XP Progress</span>
-            <span className={`text-xs font-bold ${isDark?'text-primary-400':'text-primary-600'} font-mono`}>{stats.xp} / 4000</span>
+            <span className={`text-xs font-bold ${isDark?'text-primary-400':'text-primary-600'} font-mono`}>{stats.xp} / {stats.level * 500}</span>
           </div>
           <div className={`h-1.5 ${isDark?'bg-neutral-800':'bg-neutral-200'} rounded-full overflow-hidden`}>
-            <motion.div initial={{width:0}} animate={{width:'96%'}} transition={{duration:1,delay:0.3}} className="h-full bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full shadow-lg shadow-primary-500/50"/>
+            <motion.div initial={{width:0}} animate={{width:`${Math.min(100, (stats.xp % 500) / 5)}%`}} transition={{duration:1,delay:0.3}} className="h-full bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full shadow-lg shadow-primary-500/50"/>
           </div>
-          <div className={`text-[10px] ${isDark?'text-neutral-500':'text-neutral-400'} mt-1.5`}>160 XP to Level {stats.level+1}</div>
+          <div className={`text-[10px] ${isDark?'text-neutral-500':'text-neutral-400'} mt-1.5`}>{(stats.level * 500) - stats.xp} XP to Level {stats.level+1}</div>
         </div>
       </aside>
 
@@ -388,7 +416,7 @@ export default function DashboardPage() {
                 <div className={`w-36 flex flex-col gap-3 ${isDark?'border-l border-neutral-800/50':'border-l border-neutral-300/50'} pl-5`}>
                   {[
                     {icon:<Flame className={`w-4 h-4 ${isDark?'text-orange-400':'text-orange-500'}`}/>,label:'Current Streak',value:stats.streak,color:isDark?'text-orange-400':'text-orange-500',sub:'days in a row',big:true},
-                    {icon:<Crown className={`w-4 h-4 ${isDark?'text-amber-400':'text-amber-500'}`}/>,label:'Best Streak',value:14,color:isDark?'text-amber-400':'text-amber-500',sub:'all-time record',big:false},
+                    {icon:<Crown className={`w-4 h-4 ${isDark?'text-amber-400':'text-amber-500'}`}/>,label:'Best Streak',value:stats.bestStreak||0,color:isDark?'text-amber-400':'text-amber-500',sub:'all-time record',big:false},
                     {icon:<Calendar className={`w-4 h-4 ${isDark?'text-primary-400':'text-primary-500'}`}/>,label:'Active Days',value:contribution.lastNDays.filter(d=>d.value>0).length,color:isDark?'text-primary-400':'text-primary-500',sub:`out of ${contribution.lastNDays.length}`,big:false},
                     {icon:<TrendingUp className={`w-4 h-4 ${isDark?'text-green-400':'text-green-500'}`}/>,label:'Completion',value:`${Math.round((contribution.lastNDays.filter(d=>d.value>0).length/contribution.lastNDays.length)*100)}%`,color:isDark?'text-green-400':'text-green-500',sub:'activity rate',big:false},
                   ].map((s,i)=>(

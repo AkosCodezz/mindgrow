@@ -2,53 +2,48 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
-/**
- * API client for calling the NestJS backend.
- * Automatically attaches the Supabase JWT token to every request.
- */
 async function getAuthHeaders(): Promise<HeadersInit> {
   const supabase = getSupabaseBrowserClient();
   const { data: { session } } = await supabase.auth.getSession();
-
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (session?.access_token) {
     headers['Authorization'] = `Bearer ${session.access_token}`;
   }
-
   return headers;
 }
 
-async function apiFetch<T = any>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
+async function apiFetch<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const headers = await getAuthHeaders();
-
   const res = await fetch(`${API_URL}/api${endpoint}`, {
     ...options,
-    headers: {
-      ...headers,
-      ...(options.headers || {}),
-    },
+    headers: { ...headers, ...(options.headers || {}) },
   });
-
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: res.statusText }));
     throw new Error(error.message || `API error: ${res.status}`);
   }
-
-  // Handle 204 No Content
   if (res.status === 204) return null as T;
-
   return res.json();
 }
 
 // ── Auth ─────────────────────────────────────────────
 export const authApi = {
   getProfile: () => apiFetch('/auth/profile'),
+};
+
+// ── Stats / Gamification ─────────────────────────────
+export const statsApi = {
+  get: () => apiFetch('/stats'),
+  addXp: (amount: number, source: string, description?: string) =>
+    apiFetch('/stats/xp', { method: 'POST', body: JSON.stringify({ amount, source, description }) }),
+  updateStreak: () =>
+    apiFetch('/stats/streak', { method: 'POST' }),
+  completeChallenge: () =>
+    apiFetch('/stats/challenge-complete', { method: 'POST' }),
+  getLeaderboard: (limit = 10) =>
+    apiFetch(`/stats/leaderboard?limit=${limit}`),
+  getXpHistory: (limit = 20) =>
+    apiFetch(`/stats/xp-history?limit=${limit}`),
 };
 
 // ── Journals ─────────────────────────────────────────
@@ -98,4 +93,13 @@ export const coursesApi = {
 // ── Users ────────────────────────────────────────────
 export const usersApi = {
   getMe: () => apiFetch('/users/me'),
+};
+
+// ── Progress ─────────────────────────────────────────
+export const progressApi = {
+  get: (courseId?: string) => apiFetch(`/progress${courseId ? `?courseId=${courseId}` : ''}`),
+  complete: (courseId: string, lessonId: string, score?: number) =>
+    apiFetch('/progress/complete', { method: 'POST', body: JSON.stringify({ courseId, lessonId, score }) }),
+  getCourseProgress: (courseId: string, total: number) =>
+    apiFetch(`/progress/course?courseId=${courseId}&total=${total}`),
 };
